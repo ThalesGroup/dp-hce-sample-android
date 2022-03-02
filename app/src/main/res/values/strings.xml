@@ -1,0 +1,118 @@
+<resources>
+    <string name="app_name">TSHPaySample</string>
+
+    <!-- Common strings -->
+    <string name="common_word_yes">Yes</string>
+    <string name="common_word_no">No</string>
+    <string name="common_word_ok">OK</string>
+    <string name="common_word_cancel">Cancel</string>
+
+    <!-- SDK Translations   -->
+    <string name="sdk_mg_notification_message">This notification is posted to run internal operation of mg sdk</string>
+    <string name="sdk_mg_notification_channel_id">MG_SDK_NOTIFICATION</string>
+    <string name="sdk_cps_notification_message">This notification is posted to run internal operation of cps sdk</string>
+    <string name="sdk_cps_notification_channel_id">CPS_SDK_NOTIFICATION</string>
+    <string name="sdk_idv_selection_dialog">Choose an Authentication method</string>
+    <string name="sdk_otp_entry_dialog">Entry OTP</string>
+    <string name="sdk_otp_entry_empty_string">Entered OTP can\'t be empty.</string>
+    <string name="sdk_no_pending_activation">No pending activation</string>
+    <string name="sdk_not_in_scope">Feature is not in the scope of sample app.</string>
+    <string name="sdk_idv_method_not_handled">IDV method is not handled.</string>
+
+    <!-- Errors -->
+    <string name="sdk_helper_already_init">SDK Helper is already initialized.</string>
+    <string name="mg_error_sdk_already_init">MG SDK is already initialized.</string>
+    <string name="push_provider_missing">Neither FCM nor HMS service are available.</string>
+    <string name="push_token_missing">Push token is not available.</string>
+    <string name="push_received_sdk_not_initialized">Trying to process incoming message without SDK being initialized.</string>
+
+    <!-- HCE Service -->
+    <string name="hce_service_description">TSHPaySample</string>
+    <string name="aid_description">>TSHPaySample aid_description</string>
+    <string name="foreground_service_channel">Foreground notification</string>
+    <string name="foreground_service_message">Application is running in foreground</string>
+
+    <!-- View Card Front -->
+    <string name="view_card_front_thales_logo_desc">Company Logo</string>
+    <string name="view_card_front_valid_thru">EXP</string>
+
+    <!-- Fragment Card Page -->
+    <string name="fragment_card_page_card_image">Card image</string>
+    <string name="fragment_card_page_section_caption_details">Card Details</string>
+    <string name="fragment_card_page_section_caption_actions">Supported Actions</string>
+    <string name="fragment_card_page_scheme">Scheme:</string>
+    <string name="fragment_card_page_status">Status:</string>
+    <string name="fragment_card_page_is_default">Is Default:</string>
+    <string name="fragment_card_page_button_resume">Resume</string>
+    <string name="fragment_card_page_button_suspend">Suspend</string>
+    <string name="fragment_card_page_button_set_default">Set Default</string>
+    <string name="fragment_card_page_button_delete">Delete</string>
+    <string name="fragment_card_page_button_activate">Activate</string>
+    <string name="fragment_card_page_button_payment">Payment</string>
+    <string name="fragment_card_page_unknown_card_state">Unknown card state</string>
+    <string name="fragment_card_page_unhandled_card_state">Unhandled card state</string>
+    <string name="fragment_card_page_action_registered">Action was registered. Some of them are asynchronous. It can take some time to process.</string>
+    <string name="fragment_card_page_action_failed">Selected action failed with error.</string>
+
+    <!-- Fragment Splash -->
+    <string name="fragment_splash_caption">@string/app_name</string>
+    <string name="fragment_splash_state_in_progress">Initialising…</string>
+    <string name="fragment_splash_state_failed">SDK Failed to initialise</string>
+
+    <!-- Fragment Card Enrollment -->
+    <string name="fragment_card_enrollment_caption">Enter Card</string>
+    <string name="fragment_card_enrollment_pan">Card number</string>
+    <string name="fragment_card_enrollment_exp">Expiration date</string>
+    <string name="fragment_card_enrollment_cvv">Security code</string>
+    <string name="fragment_card_enrollment_button_enroll">Enroll</string>
+    <string name="fragment_card_enrollment_empty_pan">Card number can\'t be empty.</string>
+    <string name="fragment_card_enrollment_empty_exp">Expiration date can\'t be empty.</string>
+    <string name="fragment_card_enrollment_empty_cvv">Security code can\'t be empty.</string>
+
+    <!-- Fragment Terms & Conditions -->
+    <string name="fragment_terms_and_conditions_caption">Terms &amp; Conditions</string>
+    <string name="fragment_terms_and_conditions_button_accept">Accept</string>
+    <string name="fragment_terms_and_conditions_button_decline">Decline</string>
+
+    <!-- Fragment Card List -->
+    <string name="fragment_card_list_caption">Card List</string>
+    <string name="fragment_card_list_add_button_desc">Card enrollment</string>
+    <string name="fragment_splash_button_retry">Retry</string>
+
+    <!-- Fragment Payment -->
+    <string name="fragment_payment_caption">Payment</string>
+    <string name="fragment_payment_scan_fingerprint">Scan your fingerprint</string>
+    <string name="fragment_payment_to_pay">To pay</string>
+    <string name="fragment_payment_verify_by_keyguard">Authenticate</string>
+
+    <!-- Handled enrollment states -->
+    <string name="enrollment_state_inactive">Card enrollment is waiting to be started.</string>
+
+    <string name="enrollment_state_wse_started">Wallet secure enrollment started.</string>
+    <string name="enrollment_state_wse_failed">Wallet secure enrollment failed.</string>
+    <string name="enrollment_state_wse_finished">Wallet secure enrollment finished.</string>
+
+    <string name="enrollment_state_eligibility_started">Card eligibility check started.</string>
+    <string name="enrollment_state_eligibility_failed">Card eligibility check failed.</string>
+
+    <string name="enrollment_state_terms_and_conditions">Card eligibility check finished. Waiting to accept terms and conditions.</string>
+
+    <string name="enrollment_state_digitization_started">Card digitization started.</string>
+    <string name="enrollment_state_digitization_code_aquired">Card digitization asked for code.</string>
+    <string name="enrollment_state_digitization_code_aquired_enrollment_needed">Card digitization enrollment needed.</string>
+    <string name="enrollment_state_digitization_failed">Card digitization failed.</string>
+    <string name="enrollment_state_digitization_finished">Card digitization finished.</string>
+
+    <string name="enrollment_state_enrollment_code_required">Card enrollment asked for activation code.</string>
+    <string name="enrollment_state_enrollment_started">Card enrollment started.</string>
+    <string name="enrollment_state_enrollment_failed">Card enrollment failed.</string>
+    <string name="enrollment_state_enrollment_finished">Card enrollment finished, waiting for server to complete.</string>
+
+    <string name="authentication_prompt_info_title">Payment Authentication</string>
+    <string name="authentication_prompt_info_subtitle">Please, authorize the payment.</string>
+    <string name="authentication_prompt_info_description">Amount: %.2f %s</string>
+    <string name="authentication_prompt_info_description_wo_amount">You are pre-authenticating \nANY amount</string>
+    <string name="authentication_prompt_info_negative_button_text">Cancel</string>
+    <string name="authentication_prompt_message_hint_auth_failed">Please, re-try with a different authentication method.</string>
+
+</resources>

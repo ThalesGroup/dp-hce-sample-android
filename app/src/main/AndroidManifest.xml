@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.thalesgroup.tshpaysample">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
+
+    <!-- For Payment Service -->
+    <uses-feature
+        android:name="android.hardware.nfc"
+        android:required="true" />
+    <uses-feature
+        android:name="android.hardware.nfc.hce"
+        android:required="true" />
+
+    <uses-permission android:name="android.permission.NFC" />
+
+    <application
+        android:name=".PaySampleApp"
+        android:allowBackup="false"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.TSHPaySample">
+
+        <!-- Application UI entry point. -->
+        <activity
+            android:name=".ui.CardListActivity"
+            android:exported="true"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.TSHPaySample">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".ui.PaymentActivity"
+            android:configChanges="keyboardHidden|screenSize|orientation|screenLayout"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:screenOrientation="portrait"
+            android:showOnLockScreen="true"
+            android:theme="@style/Theme.TSHPaySample"
+            android:windowSoftInputMode="adjustPan|stateHidden" />
+
+
+        <!-- FCM - Push notification service -->
+        <service
+            android:name="com.thalesgroup.tshpaysample.sdk.push.FcmService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
+        <!-- HMS - Push notification service -->
+        <service
+            android:name="com.thalesgroup.tshpaysample.sdk.push.HmsService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.huawei.push.action.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+
+
+        <!-- CPS Communication service -->
+        <service
+            android:name="com.gemalto.mfs.mwsdk.provisioning.push.CPSCommService"
+            android:exported="false" />
+
+        <!-- CPS handle broadcast intents related to life cycle management (card wipe, activation etc...)  -->
+        <service
+            android:name="com.gemalto.mfs.mwsdk.dcm.broadcast.DCMBroadcastService"
+            android:exported="false" />
+
+        <!-- MG handle broadcast intents related to life cycle management (card wipe, activation etc...)  -->
+        <service
+            android:name="com.gemalto.mfs.mwsdk.mobilegateway.MGConfigurationChangeService"
+            android:exported="false" />
+
+
+    </application>
+
+</manifest>

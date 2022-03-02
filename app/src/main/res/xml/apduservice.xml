@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<host-apdu-service xmlns:android="http://schemas.android.com/apk/res/android"
+android:apduServiceBanner="@drawable/hce_banner"
+android:description="@string/hce_service_description"
+android:requireDeviceUnlock="false">
+<aid-group
+    android:category="payment"
+    android:description="@string/aid_description">
+    <!--VISA Electron-->
+    <aid-filter android:name="A0000000032010" />
+    <!--Standard MasterCard-->
+    <aid-filter android:name="A0000000041010" />
+    <!--VISA Debit/Credit (Classic)-->
+    <aid-filter android:name="A0000000031010" />
+    <!--Mastercard Maestro (Debit)-->
+    <aid-filter android:name="A0000000043060" />
+    <aid-filter android:name="A0000000042203"/>
+    <aid-filter android:name="A0000000041010D056"/>
+    <!--Visa payWave for Mobile-->
+    <aid-filter android:name="325041592E5359532E4444463031" />
+</aid-group>
+</host-apdu-service>

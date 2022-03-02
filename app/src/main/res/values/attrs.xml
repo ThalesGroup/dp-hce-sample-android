@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="ViewCardFront">
+        <attr format="string" name="type"/>
+        <attr format="string" name="pan"/>
+        <attr format="string" name="exp"/>
+        <attr format="color" name="gradientStart"/>
+        <attr format="color" name="gradientEnd"/>
+    </declare-styleable>
+</resources>

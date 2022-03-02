@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:orientation="vertical"
+        android:gravity="center|top"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="16dp">
+
+        <com.thalesgroup.tshpaysample.ui.views.ViewCardFront
+            android:id="@+id/fragment_card_enrollment_card_visual"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="start"
+            android:layout_marginTop="16dp"
+            android:textColor="@color/black"
+            android:text="@string/fragment_card_enrollment_pan"/>
+        <EditText
+            android:id="@+id/fragment_card_enrollment_pan"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="number"
+            android:hint="@string/fragment_card_enrollment_pan"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="start"
+            android:layout_marginTop="16dp"
+            android:textColor="@color/black"
+            android:text="@string/fragment_card_enrollment_exp"/>
+        <EditText
+            android:id="@+id/fragment_card_enrollment_exp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="number"
+            android:hint="@string/fragment_card_enrollment_exp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="start"
+            android:layout_marginTop="16dp"
+            android:textColor="@color/black"
+            android:text="@string/fragment_card_enrollment_cvv"/>
+        <EditText
+            android:id="@+id/fragment_card_enrollment_cvv"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="number"
+            android:hint="@string/fragment_card_enrollment_cvv"/>
+
+        <Space
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"/>
+
+        <Button
+            android:id="@+id/fragment_card_enrollment_button_enroll"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/fragment_card_enrollment_button_enroll"/>
+
+    </LinearLayout>
+
+</ScrollView>

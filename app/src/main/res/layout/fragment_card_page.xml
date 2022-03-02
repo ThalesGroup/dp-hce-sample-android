@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <!-- Card graphics -->
+    <com.thalesgroup.tshpaysample.ui.views.ViewCardFront
+        android:id="@+id/fragment_card_page_card_visual"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp"/>
+
+    <!-- Status -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="8dp"
+        android:orientation="horizontal">
+        <TextView
+            android:layout_width="0dp"
+            android:layout_weight="@integer/fragment_card_page_left_column"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="16dp"
+            android:gravity="end"
+            android:text="@string/fragment_card_page_status"/>
+        <TextView
+            android:id="@+id/fragment_card_page_text_status"
+            android:layout_width="0dp"
+            android:layout_weight="@integer/fragment_card_page_right_column"
+            android:layout_height="wrap_content"/>
+    </LinearLayout>
+
+    <!-- Is Default -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="8dp"
+        android:orientation="horizontal">
+        <TextView
+            android:layout_width="0dp"
+            android:layout_weight="@integer/fragment_card_page_left_column"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="16dp"
+            android:gravity="end"
+            android:text="@string/fragment_card_page_is_default"/>
+        <TextView
+            android:id="@+id/fragment_card_page_is_default"
+            android:layout_width="0dp"
+            android:layout_weight="@integer/fragment_card_page_right_column"
+            android:layout_height="wrap_content"/>
+    </LinearLayout>
+
+    <GridLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:columnCount="3"
+        android:rowCount="3"
+        android:layout_gravity="center"
+        android:layout_weight="1">
+        <Button
+            android:id="@+id/fragment_card_page_button_activate"
+            android:text="@string/fragment_card_page_button_activate"
+            android:layout_columnWeight="1"
+            android:layout_gravity="center"
+            style="@style/button_borderless_common"/>
+        <Button
+            android:id="@+id/fragment_card_page_button_set_default"
+            android:text="@string/fragment_card_page_button_set_default"
+            android:layout_columnWeight="1"
+            android:layout_gravity="center"
+            style="@style/button_borderless_common"/>
+        <Button
+            android:id="@+id/fragment_card_page_button_payment"
+            android:text="@string/fragment_card_page_button_payment"
+            android:layout_columnWeight="1"
+            android:layout_gravity="center"
+            style="@style/button_borderless_common"/>
+        <Button
+            android:id="@+id/fragment_card_page_button_resume"
+            android:layout_row="1"
+            android:layout_column="0"
+            android:layout_columnWeight="1"
+            android:layout_gravity="center"
+
+            android:text="@string/fragment_card_page_button_resume"
+            style="@style/button_borderless_common"/>
+        <Button
+            android:id="@+id/fragment_card_page_button_suspend"
+            android:layout_row="1"
+            android:layout_columnWeight="1"
+            android:layout_gravity="center"
+            android:text="@string/fragment_card_page_button_suspend"
+            style="@style/button_borderless_common"/>
+        <Button
+            android:id="@+id/fragment_card_page_button_delete"
+            android:layout_row="1"
+            android:layout_columnWeight="1"
+            android:layout_gravity="center"
+            android:text="@string/fragment_card_page_button_delete"
+            style="@style/button_borderless_common"/>
+
+    </GridLayout>
+
+</LinearLayout>
