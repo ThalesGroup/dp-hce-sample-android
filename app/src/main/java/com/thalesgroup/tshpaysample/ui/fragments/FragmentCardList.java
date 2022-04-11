@@ -35,6 +35,7 @@ import androidx.viewpager2.widget.ViewPager2;
 
 import com.google.android.material.tabs.TabLayoutMediator;
 import com.thalesgroup.tshpaysample.R;
+import com.thalesgroup.tshpaysample.sdk.SdkHelper;
 import com.thalesgroup.tshpaysample.sdk.push.TshPushType;
 import com.thalesgroup.tshpaysample.ui.model.CardListAdapter;
 import com.thalesgroup.tshpaysample.utlis.ZoomOutPageTransformer;
@@ -73,6 +74,7 @@ public class FragmentCardList extends AbstractFragment {
 
         // Floating button to add new card.
         retValue.findViewById(R.id.fragment_card_list_add_button).setOnClickListener(this::onButtonPressedAdd);
+        retValue.findViewById(R.id.fragment_card_list_secure_log_send).setOnClickListener(this::onButtonPressedDev);
 
         // Display dots as page indicator
         new TabLayoutMediator(retValue.findViewById(R.id.fragment_card_list_tab_layout), pager, (tab, position) -> {
@@ -111,6 +113,10 @@ public class FragmentCardList extends AbstractFragment {
 
     private void onButtonPressedAdd(final View sender) {
         getMainActivity().showFragment(new FragmentCardEnrollment(), true);
+    }
+
+    private void onButtonPressedDev(final View sender) {
+        SdkHelper.getInstance().getTshSecureLogger().shareSecureLog(getMainActivity());
     }
 
     //endregion

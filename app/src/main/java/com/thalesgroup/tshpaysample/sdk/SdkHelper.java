@@ -31,6 +31,7 @@ import androidx.annotation.NonNull;
 import com.thalesgroup.tshpaysample.R;
 import com.thalesgroup.tshpaysample.sdk.enrollment.TshEnrollment;
 import com.thalesgroup.tshpaysample.sdk.init.TshInit;
+import com.thalesgroup.tshpaysample.sdk.logger.TshSecureLogger;
 import com.thalesgroup.tshpaysample.sdk.payment.TshPaymentListener;
 import com.thalesgroup.tshpaysample.sdk.push.TshPush;
 import com.thalesgroup.tshpaysample.utlis.AppLoggerHelper;
@@ -49,6 +50,7 @@ public final class SdkHelper {
     private final TshInit mTshInit = new TshInit();
     private final TshEnrollment mTshEnrollment = new TshEnrollment();
     private final TshPaymentListener mTshPaymentListener = new TshPaymentListener();
+    private final TshSecureLogger mTshSecureLogger = new TshSecureLogger();
 
     //endregion
 
@@ -65,6 +67,9 @@ public final class SdkHelper {
             AppLoggerHelper.debug(TAG, context.getString(R.string.sdk_helper_already_init));
             return;
         }
+
+        // Start with secure logger so it will be always available for each app part.
+        mTshSecureLogger.init(context);
 
         // Initialize FCM / HMS push notifications.
         mTshPush.init(context);
@@ -102,6 +107,9 @@ public final class SdkHelper {
         return mTshPaymentListener;
     }
 
+    public TshSecureLogger getTshSecureLogger() {
+        return mTshSecureLogger;
+    }
 
     //endregion
 }

@@ -53,7 +53,6 @@ import com.gemalto.mfs.mwsdk.provisioning.sdkconfig.ProvisioningBusinessService;
 import com.gemalto.mfs.mwsdk.utils.chcodeverifier.CHCodeVerifier;
 import com.gemalto.mfs.mwsdk.utils.chcodeverifier.SecureCodeInputer;
 import com.thalesgroup.tshpaysample.R;
-import com.thalesgroup.tshpaysample.sdk.SdkConstants;
 import com.thalesgroup.tshpaysample.sdk.SdkHelper;
 import com.thalesgroup.tshpaysample.sdk.init.TshInitBase;
 import com.thalesgroup.tshpaysample.utlis.AppLoggerHelper;
@@ -102,13 +101,9 @@ public class TshEnrollment implements CardEligibilityListener, MGDigitizationLis
             public void onSuccess() {
                 updateState(TshEnrollmentState.ELIGIBILITY_CHECK_START);
 
-                final byte[] pubKeyBytes = MGCardInfoEncryptor.parseHex(SdkConstants.PUBLIC_KEY);
-                final byte[] subKeyBytes = MGCardInfoEncryptor.parseHex(SdkConstants.SUBJECT_IDENTIFIER);
-                final byte[] encData = MGCardInfoEncryptor.encrypt(pubKeyBytes, subKeyBytes,
-                        cardPan.getBytes(), cardExp.getBytes(), cardCvv.getBytes());
-
+                final byte[] cardEncryptedData = getCardEncryptedData(cardPan, cardExp, cardCvv);
                 final MGCardEnrollmentService enrollmentService = MobileGatewayManager.INSTANCE.getCardEnrollmentService();
-                enrollmentService.checkCardEligibility(encData, InputMethod.MANUAL, "en", TshEnrollment.this, getDeviceSerial());
+                enrollmentService.checkCardEligibility(cardEncryptedData, InputMethod.MANUAL, "en", TshEnrollment.this, getDeviceSerial());
             }
 
             @Override
@@ -342,6 +337,22 @@ public class TshEnrollment implements CardEligibilityListener, MGDigitizationLis
 
     private String getDeviceSerial() {
         return Settings.Secure.getString(mContext.getContentResolver(), Settings.Secure.ANDROID_ID);
+    }
+
+    private byte[] getCardEncryptedData(@NonNull final String cardPan,
+                                        @NonNull final String cardExp,
+                                        @NonNull final String cardCvv) {
+        // #################### FOR SAMPLE APP USE ONLY ####################
+        // 1] Card data as well as public key and subject identifier are part of values.xml
+        //    for testing purposes and simplification. Real application can't expose any of
+        //    those values.
+        // 2] Green flow must not be calculated on client side. It's only mock behaviour on
+        //    sandbox or preproduction environment.
+        // #################################################################
+        final byte[] pubKeyBytes = MGCardInfoEncryptor.parseHex(mContext.getString(R.string.test_data_public_key));
+        final byte[] subKeyBytes = MGCardInfoEncryptor.parseHex(mContext.getString(R.string.test_data_subject_identifier));
+        return MGCardInfoEncryptor.encrypt(pubKeyBytes, subKeyBytes,
+                cardPan.getBytes(), cardExp.getBytes(), cardCvv.getBytes());
     }
 
     //endregion

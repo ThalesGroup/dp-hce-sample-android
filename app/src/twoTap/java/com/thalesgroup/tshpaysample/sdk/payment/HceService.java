@@ -28,8 +28,6 @@ import android.os.Bundle;
 
 import com.gemalto.mfs.mwsdk.payment.AbstractHCEService;
 import com.gemalto.mfs.mwsdk.payment.PaymentServiceListener;
-import com.thalesgroup.tshpaysample.sdk.SdkCommonConstants;
-import com.thalesgroup.tshpaysample.sdk.SdkConstants;
 import com.thalesgroup.tshpaysample.sdk.SdkHelper;
 
 public class HceService extends AbstractHCEService {

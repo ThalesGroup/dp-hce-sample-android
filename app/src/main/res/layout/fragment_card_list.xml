@@ -11,6 +11,17 @@
         android:layout_height="match_parent"/>
 
     <ImageView
+        android:id="@+id/fragment_card_list_secure_log_send"
+        android:layout_width="60dp"
+        android:layout_height="60dp"
+        android:layout_margin="16dp"
+        android:layout_gravity="start|bottom"
+        android:elevation="8dp"
+        android:src="@drawable/outline_logo_dev_24"
+        android:contentDescription="@string/fragment_card_list_add_button_desc"
+        app:tint="@drawable/add_button_tint" />
+
+    <ImageView
         android:id="@+id/fragment_card_list_add_button"
         android:layout_width="60dp"
         android:layout_height="60dp"

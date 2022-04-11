@@ -108,6 +108,7 @@ public class CardListAdapter extends FragmentStateAdapter {
 
                 // For simplification we will set default card to first enrolled card.
                 checkDefaultCard();
+                checkReplenishment();
                 notifyPages();
             }
 
@@ -117,6 +118,12 @@ public class CardListAdapter extends FragmentStateAdapter {
                 notifyPages();
             }
         }).getAllCards();
+    }
+
+    private void checkReplenishment() {
+        for (final CardWrapper loopCard : mCardList) {
+            loopCard.replenishKeysIfNeeded(false);
+        }
     }
 
     private void checkDefaultCard() {

@@ -28,14 +28,17 @@ import android.content.Context;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.gemalto.mfs.mwsdk.dcm.DigitalizedCard;
 import com.gemalto.mfs.mwsdk.dcm.DigitalizedCardManager;
+import com.gemalto.mfs.mwsdk.dcm.DigitalizedCardStatus;
 import com.gemalto.mfs.mwsdk.dcm.PaymentType;
 import com.gemalto.mfs.mwsdk.mobilegateway.MGCardEnrollmentService;
 import com.gemalto.mfs.mwsdk.mobilegateway.MGCardLifeCycleManager;
@@ -51,6 +54,12 @@ import com.gemalto.mfs.mwsdk.payment.PaymentBusinessManager;
 import com.gemalto.mfs.mwsdk.payment.PaymentBusinessService;
 import com.gemalto.mfs.mwsdk.payment.PaymentServiceErrorCode;
 import com.gemalto.mfs.mwsdk.payment.engine.TransactionContext;
+import com.gemalto.mfs.mwsdk.provisioning.ProvisioningServiceManager;
+import com.gemalto.mfs.mwsdk.provisioning.listener.PushServiceListener;
+import com.gemalto.mfs.mwsdk.provisioning.model.ProvisioningServiceError;
+import com.gemalto.mfs.mwsdk.provisioning.model.ProvisioningServiceErrorCodes;
+import com.gemalto.mfs.mwsdk.provisioning.sdkconfig.ProvisioningBusinessService;
+import com.gemalto.mfs.mwsdk.sdkconfig.AndroidContextResolver;
 import com.gemalto.mfs.mwsdk.sdkconfig.SDKError;
 import com.thalesgroup.tshpaysample.sdk.SdkHelper;
 import com.thalesgroup.tshpaysample.sdk.payment.TshPaymentListener;
@@ -290,6 +299,24 @@ public class CardWrapper {
                                 final MobileGatewayError mobileGatewayError) {
                 AppLoggerHelper.error(TAG, mobileGatewayError.getMessage());
                 delegate.onFinished(false, mobileGatewayError.getMessage());
+            }
+        });
+    }
+
+    public void replenishKeysIfNeeded(final boolean forcedReplenishment) {
+        getDigitalizedCardState(new AsyncHelperCardState.Delegate() {
+            @Override
+            public void onSuccess(final DigitalizedCardStatus value) {
+                if (value.needsReplenishment()) {
+                    final ProvisioningBusinessService businessService = ProvisioningServiceManager.getProvisioningBusinessService();
+                    businessService.sendRequestForReplenishment(mDigitalizedCard.getTokenizedCardID(),
+                            SdkHelper.getInstance().getPush(), forcedReplenishment);
+                }
+            }
+
+            @Override
+            public void onError(final String error) {
+                AppLoggerHelper.error(TAG, error);
             }
         });
     }

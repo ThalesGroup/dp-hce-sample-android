@@ -4,4 +4,7 @@
     <string name="test_data_yellow_pan">TO_BE_CONFIGURED</string>
     <string name="test_data_exp">TO_BE_CONFIGURED</string>
     <string name="test_data_cvv">TO_BE_CONFIGURED</string>
+    
+    <string name="test_data_public_key">TO_BE_CONFIGURED</string>
+    <string name="test_data_subject_identifier">TO_BE_CONFIGURED</string>
 </resources>

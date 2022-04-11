@@ -41,7 +41,6 @@ import com.gemalto.mfs.mwsdk.mobilegateway.MGTransactionHistoryConfiguration;
 import com.gemalto.mfs.mwsdk.mobilegateway.MGWalletConfiguration;
 import com.gemalto.mfs.mwsdk.mobilegateway.MobileGatewayManager;
 import com.gemalto.mfs.mwsdk.mobilegateway.exception.MGConfigurationException;
-import com.gemalto.mfs.mwsdk.mobilegateway.exception.MGStorageConfigurationException;
 import com.gemalto.mfs.mwsdk.payment.cdcvm.DeviceCVMPreEntryReceiver;
 import com.gemalto.mfs.mwsdk.payment.sdkconfig.SDKDataController;
 import com.gemalto.mfs.mwsdk.payment.sdkconfig.SDKInitializer;
@@ -57,7 +56,6 @@ import com.gemalto.mfs.mwsdk.sdkconfig.SDKError;
 import com.gemalto.mfs.mwsdk.sdkconfig.SDKInitializeErrorCode;
 import com.gemalto.mfs.mwsdk.sdkconfig.SDKSetupProgressState;
 import com.thalesgroup.tshpaysample.R;
-import com.thalesgroup.tshpaysample.sdk.SdkConstants;
 import com.thalesgroup.tshpaysample.sdk.helpers.InternalNotificationsUtils;
 import com.thalesgroup.tshpaysample.sdk.payment.HceService;
 import com.thalesgroup.tshpaysample.utlis.AppLoggerHelper;
@@ -90,13 +88,7 @@ public class TshInitBase {
     //region Public API
 
     public MGSDKConfigurationState getMgSdkState() {
-        try {
-            return MobileGatewayManager.INSTANCE.getConfigurationState();
-        } catch (final MGStorageConfigurationException exception) {
-            AppLoggerHelper.exception(TAG, exception.getLocalizedMessage(), exception.getCauseException());
-        }
-
-        return MGSDKConfigurationState.NOT_CONFIGURED;
+        return MobileGatewayManager.INSTANCE.getConfigurationState();
     }
 
     public void init(@NonNull final Context context) {
@@ -200,44 +192,17 @@ public class TshInitBase {
     }
 
     protected void initMgSdk(@NonNull final InitSdkCallback callback) {
+        final MobileGatewayManager mobileGatewayManager = MobileGatewayManager.INSTANCE;
+
         try {
             // Avoid multiple init.
-            if (getMgSdkState() != MGSDKConfigurationState.NOT_CONFIGURED) {
-                callback.onError(mContext.getString(R.string.mg_error_sdk_already_init));
-                return;
+            if (mobileGatewayManager.getConfigurationState() != MGSDKConfigurationState.NOT_CONFIGURED) {
+                callback.onSuccess();
+            } else {
+                // Init MG and notify other layers.
+                mobileGatewayManager.configure(mContext);
+                callback.onSuccess();
             }
-
-            // Configure MG configuration
-            final MGConnectionConfiguration connectionConfiguration = new MGConnectionConfiguration
-                    .Builder()
-                    .setConnectionParameters(SdkConstants.MG_CONNECTION_URL,
-                            SdkConstants.MG_CONNECTION_TIMEOUT,
-                            SdkConstants.MG_CONNECTION_READ_TIMEOUT)
-                    .setRetryParameters(SdkConstants.MG_CONNECTION_RETRY_COUNT,
-                            SdkConstants.MG_CONNECTION_RETRY_INTERVAL)
-                    .build();
-
-            // Configure wallet configuration
-            final MGWalletConfiguration walletConfiguration = new MGWalletConfiguration
-                    .Builder()
-                    .setWalletParameters(SdkConstants.WALLET_PROVIDER_ID)
-                    .setNotification(
-                            NotificationUtil.getNotification(mContext,
-                                    mContext.getString(R.string.sdk_mg_notification_message),
-                                    mContext.getString(R.string.sdk_mg_notification_channel_id)))
-                    .build();
-
-            // Configure Transaction History
-            final MGTransactionHistoryConfiguration transactionConfiguration = new MGTransactionHistoryConfiguration
-                    .Builder()
-                    .setConnectionParameters(SdkConstants.MG_TRANSACTION_HISTORY_CONNECTION_URL)
-                    .build();
-
-            final MobileGatewayManager manager = MobileGatewayManager.INSTANCE;
-            manager.configure(mContext, connectionConfiguration, walletConfiguration, transactionConfiguration);
-
-            // Notify handler about success.
-            callback.onSuccess();
         } catch (final MGConfigurationException exception) {
             // Notify handler about the issue.
             callback.onError(exception.getLocalizedMessage());

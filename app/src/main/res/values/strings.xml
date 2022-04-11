@@ -77,6 +77,7 @@
     <!-- Fragment Card List -->
     <string name="fragment_card_list_caption">Card List</string>
     <string name="fragment_card_list_add_button_desc">Card enrollment</string>
+    <string name="fragment_card_list_dev_button_desc">Send SDK logs</string>
     <string name="fragment_splash_button_retry">Retry</string>
 
     <!-- Fragment Payment -->

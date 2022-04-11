@@ -34,16 +34,20 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 
+import com.gemalto.mfs.mwsdk.dcm.DigitalizedCard;
 import com.gemalto.mfs.mwsdk.dcm.DigitalizedCardManager;
+import com.gemalto.mfs.mwsdk.dcm.DigitalizedCardStatus;
 import com.gemalto.mfs.mwsdk.dcm.PaymentType;
 import com.gemalto.mfs.mwsdk.payment.CHVerificationMethod;
 import com.gemalto.mfs.mwsdk.payment.CVMResetTimeoutListener;
 import com.gemalto.mfs.mwsdk.payment.PaymentServiceErrorCode;
 import com.gemalto.mfs.mwsdk.payment.engine.ContactlessPaymentServiceListener;
+import com.gemalto.mfs.mwsdk.payment.engine.DeactivationStatus;
 import com.gemalto.mfs.mwsdk.payment.engine.PaymentService;
 import com.gemalto.mfs.mwsdk.payment.engine.TransactionContext;
 import com.gemalto.mfs.mwsdk.sdkconfig.SDKError;
 import com.thalesgroup.tshpaysample.sdk.SdkHelper;
+import com.thalesgroup.tshpaysample.sdk.helpers.CardWrapper;
 import com.thalesgroup.tshpaysample.sdk.helpers.InternalNotificationsUtils;
 import com.thalesgroup.tshpaysample.ui.PaymentActivity;
 import com.thalesgroup.tshpaysample.utlis.AppLoggerHelper;
@@ -81,6 +85,10 @@ public class TshPaymentListener implements ContactlessPaymentServiceListener {
 
         // Prepare default values.
         resetState(true);
+    }
+
+    public TshPaymentState getPaymentState() {
+        return mPaymentState;
     }
 
     //endregion
@@ -213,26 +221,13 @@ public class TshPaymentListener implements ContactlessPaymentServiceListener {
         updateState(TshPaymentState.STATE_ON_READY_TO_TAP, new TshPaymentData(mAmount, mCurrency, mCurrentCardId));
     }
 
-    private TransactionContext retrieveTransactionContext(final PaymentService paymentService) {
-
-        if (paymentService == null) {
-            return null;
-        } else {
-            return paymentService.getTransactionContext();
-        }
-    }
-
-    private void updateAmountAndCurrency(final PaymentService paymentService) {
-        updateAmountAndCurrency(retrieveTransactionContext(paymentService));
-    }
-
-    private void updateAmountAndCurrency(final TransactionContext transactionContext) {
-        if (transactionContext == null) {
-            mAmount = -1.0;
-            mCurrency = null;
-        } else {
-            mAmount = transactionContext.getAmount();
-            mCurrency = UtilsCurrenciesConstants.getCurrency(transactionContext.getCurrencyCode()).getCurrencyCode();
+    @Override
+    public void onNextTransactionReady(final DeactivationStatus deactivationStatus,
+                                       final DigitalizedCardStatus digitalizedCardStatus,
+                                       final DigitalizedCard digitalizedCard) {
+        if (digitalizedCard != null && digitalizedCard.getTokenizedCardID() != null) {
+            final CardWrapper cardWrapper = new CardWrapper(digitalizedCard.getTokenizedCardID());
+            cardWrapper.replenishKeysIfNeeded(false);
         }
     }
 
@@ -273,12 +268,35 @@ public class TshPaymentListener implements ContactlessPaymentServiceListener {
         }
     }
 
+    //endregion
+
+    //region Private Helpers
+
     private void loadCurrentCardData() {
         mCurrentCardId = DigitalizedCardManager.getDefault(PaymentType.CONTACTLESS, null).waitToComplete().getResult();
     }
 
-    public TshPaymentState getPaymentState() {
-        return mPaymentState;
+    private TransactionContext retrieveTransactionContext(final PaymentService paymentService) {
+
+        if (paymentService == null) {
+            return null;
+        } else {
+            return paymentService.getTransactionContext();
+        }
+    }
+
+    private void updateAmountAndCurrency(final PaymentService paymentService) {
+        updateAmountAndCurrency(retrieveTransactionContext(paymentService));
+    }
+
+    private void updateAmountAndCurrency(final TransactionContext transactionContext) {
+        if (transactionContext == null) {
+            mAmount = -1.0;
+            mCurrency = null;
+        } else {
+            mAmount = transactionContext.getAmount();
+            mCurrency = UtilsCurrenciesConstants.getCurrency(transactionContext.getCurrencyCode()).getCurrencyCode();
+        }
     }
 
     //endregion
