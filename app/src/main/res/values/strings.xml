@@ -24,7 +24,9 @@
     <string name="mg_error_sdk_already_init">MG SDK is already initialized.</string>
     <string name="push_provider_missing">Neither FCM nor HMS service are available.</string>
     <string name="push_token_missing">Push token is not available.</string>
+    <string name="push_received_unknown">Unknown push notification received.</string>
     <string name="push_received_sdk_not_initialized">Trying to process incoming message without SDK being initialized.</string>
+    <string name="push_received_transaction_history">Transaction history is not in scope of this sample application.</string>
 
     <!-- HCE Service -->
     <string name="hce_service_description">TSHPaySample</string>

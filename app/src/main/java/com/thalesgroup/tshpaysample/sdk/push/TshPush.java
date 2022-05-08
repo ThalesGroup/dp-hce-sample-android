@@ -48,6 +48,7 @@ import com.google.gson.reflect.TypeToken;
 import com.thalesgroup.tshpaysample.R;
 import com.thalesgroup.tshpaysample.sdk.SdkHelper;
 import com.thalesgroup.tshpaysample.sdk.enrollment.TshEnrollmentState;
+import com.thalesgroup.tshpaysample.sdk.helpers.CardWrapper;
 import com.thalesgroup.tshpaysample.sdk.helpers.InternalNotificationsUtils;
 import com.thalesgroup.tshpaysample.sdk.init.TshInitState;
 import com.thalesgroup.tshpaysample.utlis.AppLoggerHelper;
@@ -61,13 +62,21 @@ public final class TshPush implements PushServiceListener {
 
     //region Defines
 
+    interface TshMessageDelegate {
+        void onMessageProcessed(final Bundle bundle,
+                                final TshPushSender sender,
+                                final String action,
+                                final String digitalizedCardId);
+    }
+
     private static final String TAG = TshPush.class.getSimpleName();
     private static final Type TOKEN_TYPE = new TypeToken<List<ArrayMap<String, String>>>() {
     }.getType();
 
-    private static final String SENDER_ID_CPS = "CPS";
-    private static final String SENDER_ID_TNS = "TNS";
-    private static final String SENDER_MESSAGE_KEY = "sender";
+    private static final String KEY_SENDER = "sender";
+    private static final String KEY_ACTION = "action";
+    private static final String KEY_DIGITALIZED_CARD_ID = "digitalCardID";
+    private static final String KEY_REPLENISHMENT = "MG:ReplenishmentNeededNotification";
 
     private static final String SHARED_PREFERENCE_NAME = "PUSH_HELPER_STORAGE";
     private static final String PUSH_TOKEN_LOCAL_KEY = "PUSH_TOKEN_LOCAL";
@@ -218,34 +227,32 @@ public final class TshPush implements PushServiceListener {
 
     protected void onMessageReceived(@NonNull final Context context,
                                      @NonNull final Map<String, String> data) {
-        // Transform incoming data to bundle accepted by SDK and find original sender.
-        final Bundle bundle = new Bundle();
-        String sender = "";
-        if (!data.isEmpty()) {
-            for (final String key : data.keySet()) {
-                AppLoggerHelper.debug(TAG, key + " ---|--- " + data.get(key));
-                if (null != data.get(key)) {
-                    bundle.putString(key, data.get(key));
-                    if (SENDER_MESSAGE_KEY.equalsIgnoreCase(key)) {
-                        sender = data.get(key);
+        processTshMessage(context, data, (bundle, sender, action, digitalizedCardId) -> {
+            switch (sender) {
+                case CPS:
+                    // Main notification that needs to be handled in order to progress with
+                    // enrollment, replenishment, card state changes etc...
+                    final ProvisioningBusinessService provService = ProvisioningServiceManager.getProvisioningBusinessService();
+                    provService.processIncomingMessage(bundle, TshPush.this);
+                    break;
+                case MG:
+                    // We run out of keys and backend is asking wallet to force replenishment.
+                    if (KEY_REPLENISHMENT.equalsIgnoreCase(action) &&
+                            digitalizedCardId != null && !digitalizedCardId.isEmpty()) {
+                        new CardWrapper(digitalizedCardId).replenishKeysIfNeeded(true);
                     }
-                }
+                    break;
+                case TNS:
+                    // Transaction history notification. Not in current scope of sample application.
+                    AppLoggerHelper.error(TAG, context.getString(R.string.push_received_transaction_history));
+                    break;
+                case UNKNOWN:
+                    // Notification is not from Tsh. This is example how app can handle
+                    // own push notification.
+                    AppLoggerHelper.error(TAG, context.getString(R.string.push_received_unknown));
+                    break;
             }
-        }
-
-        // We can only process current message if SDK is fully initialized.
-        if (SdkHelper.getInstance().getInit().getMgSdkState() == MGSDKConfigurationState.CONFIGURED) {
-            if (SENDER_ID_CPS.equalsIgnoreCase(sender)) {
-                final ProvisioningBusinessService provService = ProvisioningServiceManager.getProvisioningBusinessService();
-                provService.processIncomingMessage(bundle, this);
-            } /*else if (SENDER_ID_TNS.equalsIgnoreCase(sender)) {
-                // TODO: Handle transaction history
-            }*/
-        } else if (SENDER_ID_CPS.equalsIgnoreCase(sender) || SENDER_ID_TNS.equalsIgnoreCase(sender)) {
-            // SDK is not yet loaded. Store unprocessed notification and use it after init.
-            AppLoggerHelper.error(TAG, context.getString(R.string.push_received_sdk_not_initialized));
-            storeUnprocessedPushNotification(context, data);
-        }
+        });
     }
 
     //endregion
@@ -314,6 +321,45 @@ public final class TshPush implements PushServiceListener {
 
     private void cleanUnprocessedPushNotification(@NonNull final Context context) {
         getStorage(context).edit().remove(UNPROCESSED_NOTIFICATIONS_KEY).apply();
+    }
+
+    private void processTshMessage(@NonNull final Context context,
+                                   @NonNull final Map<String, String> data,
+                                   @NonNull final TshMessageDelegate delegate) {
+        String retSender = "";
+        String retDigitalCardID = "";
+        String retAction = "";
+
+        final Bundle bundle = new Bundle();
+        if (!data.isEmpty()) {
+            for (final String loopKey : data.keySet()) {
+                final String value = data.get(loopKey);
+                AppLoggerHelper.debug(TAG, loopKey + " ---|--- " + value);
+                if (null != data.get(loopKey)) {
+                    bundle.putString(loopKey, value);
+                    if (KEY_SENDER.equalsIgnoreCase(loopKey)) {
+                        retSender = value;
+                    } else if (KEY_ACTION.equalsIgnoreCase(loopKey)) {
+                        retAction = value;
+                    } else if (KEY_DIGITALIZED_CARD_ID.equalsIgnoreCase(loopKey)) {
+                        retDigitalCardID = value;
+                    }
+                }
+            }
+        }
+
+        // We will return data back only in case that SDK is fully initialized,
+        // or received message is not from TSH. If the message is Tsh, but SDK is not initialized,
+        // we will store data for future processing.
+        final TshPushSender pushSender = TshPushSender.senderFromString(retSender);
+        final boolean isTshConfigured = SdkHelper.getInstance().getInit().getMgSdkState() == MGSDKConfigurationState.CONFIGURED;
+        if (isTshConfigured || pushSender == TshPushSender.UNKNOWN) {
+            delegate.onMessageProcessed(bundle, pushSender, retAction, retDigitalCardID);
+        } else {
+            // SDK is not yet loaded. Store unprocessed notification and use it after init.
+            AppLoggerHelper.error(TAG, context.getString(R.string.push_received_sdk_not_initialized));
+            storeUnprocessedPushNotification(context, data);
+        }
     }
 
     //endregion
