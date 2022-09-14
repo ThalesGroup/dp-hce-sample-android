@@ -1,3 +1,7 @@
+/*
+ * Copyright © 2021-2022 THALES. All rights reserved.
+ */
+
 package com.thalesgroup.tshpaysample.utlis;
 
 import java.text.DecimalFormat;
