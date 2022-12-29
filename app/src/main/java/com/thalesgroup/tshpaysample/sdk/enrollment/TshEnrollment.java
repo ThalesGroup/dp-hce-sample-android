@@ -14,8 +14,10 @@ import androidx.annotation.NonNull;
 import com.gemalto.mfs.mwsdk.mobilegateway.MGCardEnrollmentService;
 import com.gemalto.mfs.mwsdk.mobilegateway.MobileGatewayError;
 import com.gemalto.mfs.mwsdk.mobilegateway.MobileGatewayManager;
+import com.gemalto.mfs.mwsdk.mobilegateway.enrollment.EligibilityData;
 import com.gemalto.mfs.mwsdk.mobilegateway.enrollment.IDVMethodSelector;
 import com.gemalto.mfs.mwsdk.mobilegateway.enrollment.InputMethod;
+import com.gemalto.mfs.mwsdk.mobilegateway.enrollment.InstrumentData;
 import com.gemalto.mfs.mwsdk.mobilegateway.enrollment.IssuerData;
 import com.gemalto.mfs.mwsdk.mobilegateway.enrollment.PendingCardActivation;
 import com.gemalto.mfs.mwsdk.mobilegateway.enrollment.PendingCardActivationState;
@@ -67,8 +69,6 @@ public class TshEnrollment implements CardEligibilityListener, MGDigitizationLis
                            @NonNull final String cardExp,
                            @NonNull final String cardCvv,
                            @NonNull final TshEnrollmentDelegate dataProvider) {
-        // TODO: Check state and not allow next enrollment before finish.
-
         // Reset previous state.
         cleanUp();
 
@@ -81,9 +81,16 @@ public class TshEnrollment implements CardEligibilityListener, MGDigitizationLis
             public void onSuccess() {
                 updateState(TshEnrollmentState.ELIGIBILITY_CHECK_START);
 
+                // Prepare data object for eligibility check.
                 final byte[] cardEncryptedData = getCardEncryptedData(cardPan, cardExp, cardCvv);
+                final EligibilityData eligibilityData = new EligibilityData.Builder(InputMethod.MANUAL, "en")
+                        .serialNumber(getDeviceSerial()).build();
+                final InstrumentData instrumentData = new InstrumentData.EncryptedCardDataBuilder(cardEncryptedData)
+                        .build();
+
+                // Get eligibility service and trigger the check.
                 final MGCardEnrollmentService enrollmentService = MobileGatewayManager.INSTANCE.getCardEnrollmentService();
-                enrollmentService.checkCardEligibility(cardEncryptedData, InputMethod.MANUAL, "en", TshEnrollment.this, getDeviceSerial());
+                enrollmentService.checkEligibility(eligibilityData, instrumentData, TshEnrollment.this);
             }
 
             @Override
