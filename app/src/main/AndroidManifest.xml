@@ -2,9 +2,18 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.thalesgroup.tshpaysample">
 
+    <!--
+    Manifest declarations follow developer portal page:
+    https://developer.dbp.thalescloud.io/docs/tsh-hce-android/c7a77ac96dd5d-configuring-the-application-manifest-file#example-of-androidmanifestxml
+    -->
+    <!-- internet is needed for TSHPaySDK to perform wallet and card enrolment and keys replenishemnt -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- For TSHPaySDK to be able to use NFC -->
+    <uses-permission android:name="android.permission.NFC" />
+    <!-- In  case the Appliaction uses the biometric as CDCVM -->
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+    <!--Even if deprecated from Android 10, this is needed for Android 9 and below -->
+    <uses-permission android:name="android.permission.USE_FINGERPRINT"/>
 
     <!-- For Payment Service -->
     <uses-feature
@@ -66,21 +75,27 @@
             </intent-filter>
         </service>
 
-
         <!-- CPS Communication service -->
         <service
             android:name="com.gemalto.mfs.mwsdk.provisioning.push.CPSCommService"
+            android:enabled="true"
             android:exported="false" />
 
-        <!-- CPS handle broadcast intents related to life cycle management (card wipe, activation etc...)  -->
+        <!-- HCE Payment service -->
         <service
-            android:name="com.gemalto.mfs.mwsdk.dcm.broadcast.DCMBroadcastService"
-            android:exported="false" />
+            android:name="com.thalesgroup.tshpaysample.sdk.payment.TshPaymentHceService"
+            android:exported="true"
+            android:label="@string/hce_service_label"
+            android:permission="android.permission.BIND_NFC_SERVICE">
+            <intent-filter>
+                <action android:name="android.nfc.cardemulation.action.HOST_APDU_SERVICE" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
 
-        <!-- MG handle broadcast intents related to life cycle management (card wipe, activation etc...)  -->
-        <service
-            android:name="com.gemalto.mfs.mwsdk.mobilegateway.MGConfigurationChangeService"
-            android:exported="false" />
+            <meta-data
+                android:name="android.nfc.cardemulation.host_apdu_service"
+                android:resource="@xml/apduservice" />
+        </service>
 
         <provider
             android:name="androidx.core.content.FileProvider"

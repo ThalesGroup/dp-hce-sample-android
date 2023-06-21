@@ -11,8 +11,8 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 
 import com.thalesgroup.tshpaysample.R;
-import com.thalesgroup.tshpaysample.sdk.payment.TshPaymentErrorData;
 import com.thalesgroup.tshpaysample.sdk.helpers.CardWrapper;
+import com.thalesgroup.tshpaysample.sdk.payment.TshPaymentErrorData;
 import com.thalesgroup.tshpaysample.ui.views.ViewCardFront;
 
 public class FragmentPaymentError extends AbstractFragment {

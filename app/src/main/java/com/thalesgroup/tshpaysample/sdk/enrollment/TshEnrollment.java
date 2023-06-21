@@ -36,7 +36,7 @@ import com.gemalto.mfs.mwsdk.utils.chcodeverifier.CHCodeVerifier;
 import com.gemalto.mfs.mwsdk.utils.chcodeverifier.SecureCodeInputer;
 import com.thalesgroup.tshpaysample.R;
 import com.thalesgroup.tshpaysample.sdk.SdkHelper;
-import com.thalesgroup.tshpaysample.sdk.init.TshInitBase;
+import com.thalesgroup.tshpaysample.sdk.init.TshInit;
 import com.thalesgroup.tshpaysample.utlis.AppLoggerHelper;
 
 import java.util.Arrays;
@@ -76,7 +76,7 @@ public class TshEnrollment implements CardEligibilityListener, MGDigitizationLis
 
         // Check card eligibility requires WSE to be finished.
         updateState(TshEnrollmentState.WSE_CHECK_START);
-        SdkHelper.getInstance().getInit().performWseIfNeeded(new TshInitBase.InitSdkCallback() {
+        SdkHelper.getInstance().getInit().performWseIfNeeded(new TshInit.InitSdkCallback() {
             @Override
             public void onSuccess() {
                 updateState(TshEnrollmentState.ELIGIBILITY_CHECK_START);

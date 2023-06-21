@@ -76,6 +76,9 @@ public class FragmentSplash extends AbstractFragment {
 
     private void checkState() {
         final TshInitState currentState = SdkHelper.getInstance().getInit().geInitState();
+
+        AppLoggerHelper.debug(TAG, String.format("stateHandled = %s, currentState = %s", mStateHandled, currentState));
+
         if (!mStateHandled.equals(currentState)) {
             switch (currentState) {
                 case INACTIVE:
@@ -99,6 +102,14 @@ public class FragmentSplash extends AbstractFragment {
             }
 
             mStateHandled = currentState;
+        }
+
+        if(currentState == TshInitState.INACTIVE){
+            AppLoggerHelper.info(TAG, "Init has not been started yet => starting it now...");
+            // Start from here if not done before from whatever reason
+            // One case is that app has set PaymentExperience.TWO_TAP_ALWAYS and init has been
+            // skipped from the App#onCreate
+            SdkHelper.getInstance().getInit().init(getContext());
         }
     }
 

@@ -24,8 +24,8 @@ import com.gemalto.mfs.mwsdk.mobilegateway.enrollment.PendingCardActivation;
 import com.thalesgroup.tshpaysample.R;
 import com.thalesgroup.tshpaysample.sdk.SdkHelper;
 import com.thalesgroup.tshpaysample.sdk.helpers.AsyncHelperCardState;
-import com.thalesgroup.tshpaysample.ui.CardListActivity;
 import com.thalesgroup.tshpaysample.sdk.helpers.CardWrapper;
+import com.thalesgroup.tshpaysample.ui.CardListActivity;
 import com.thalesgroup.tshpaysample.ui.views.ViewCardFront;
 import com.thalesgroup.tshpaysample.utlis.AppLoggerHelper;
 

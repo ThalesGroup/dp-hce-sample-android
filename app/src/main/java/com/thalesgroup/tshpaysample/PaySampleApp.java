@@ -14,6 +14,6 @@ public class PaySampleApp extends MultiDexApplication {
     public void onCreate() {
         super.onCreate();
 
-        SdkHelper.getInstance().init(this);
+        SdkHelper.getInstance().initFromAppOnCreate(this);
     }
 }

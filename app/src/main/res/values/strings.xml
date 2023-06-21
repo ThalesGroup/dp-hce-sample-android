@@ -29,10 +29,9 @@
     <string name="push_received_transaction_history">Transaction history is not in scope of this sample application.</string>
 
     <!-- HCE Service -->
-    <string name="hce_service_description">TSHPaySample</string>
-    <string name="aid_description">>TSHPaySample aid_description</string>
-    <string name="foreground_service_channel">Foreground notification</string>
-    <string name="foreground_service_message">Application is running in foreground</string>
+    <string name="hce_service_label">Sample HCE Service Label</string>
+    <string name="hce_service_description">Sample HCE Service Description</string>
+    <string name="hce_aid_group_description">>Sample AID Group Description</string>
 
     <!-- View Card Front -->
     <string name="view_card_front_thales_logo_desc">Company Logo</string>

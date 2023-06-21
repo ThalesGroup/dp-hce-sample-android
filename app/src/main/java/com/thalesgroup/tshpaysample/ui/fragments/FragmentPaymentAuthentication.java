@@ -26,8 +26,8 @@ import com.gemalto.mfs.mwsdk.cdcvm.DeviceCVMVerifyListener;
 import com.gemalto.mfs.mwsdk.payment.PaymentBusinessManager;
 import com.gemalto.mfs.mwsdk.sdkconfig.SDKError;
 import com.thalesgroup.tshpaysample.R;
-import com.thalesgroup.tshpaysample.sdk.payment.TshPaymentAuthenticationRequestData;
 import com.thalesgroup.tshpaysample.sdk.helpers.CardWrapper;
+import com.thalesgroup.tshpaysample.sdk.payment.TshPaymentAuthenticationRequestData;
 import com.thalesgroup.tshpaysample.ui.views.ViewCardFront;
 import com.thalesgroup.tshpaysample.utlis.AppLoggerHelper;
 

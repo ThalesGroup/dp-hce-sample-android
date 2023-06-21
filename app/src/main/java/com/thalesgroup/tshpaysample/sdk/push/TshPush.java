@@ -37,6 +37,7 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Stack;
 
 public final class TshPush implements PushServiceListener {
 
@@ -68,6 +69,9 @@ public final class TshPush implements PushServiceListener {
     private String mCurrentlyUpdatedToken = null;
     private boolean mInitialEnrollment = false;
 
+    // Used for tracking server message codes that were processed
+    private Stack<String> mPushServerMessageCodes;
+
     //endregion
 
     //region Public API
@@ -77,6 +81,7 @@ public final class TshPush implements PushServiceListener {
      */
     public void init(@NonNull final Context context) {
         mContext = context;
+        mPushServerMessageCodes = new Stack<>();
 
         // Decide which push notification service we want to use.
         if (FcmService.isAvailable(context)) {
@@ -363,19 +368,28 @@ public final class TshPush implements PushServiceListener {
 
     @Override
     public void onServerMessage(final String tokenizedCardId,
-                                final ProvisioningServiceMessage provisioningServiceMessage) {
-        AppLoggerHelper.info(TAG, "onServerMessage");
+                                final ProvisioningServiceMessage msg) {
+        AppLoggerHelper.info(TAG, "onServerMessage: " + msg.getMsgCode());
 
-        // Notify application about incoming push message.
-        InternalNotificationsUtils.onPushReceived(mContext, TshPushType.getTypeFromString(provisioningServiceMessage.getMsgCode()), null);
+        // add them provisioning message to the list and process them only at the completion time
+        mPushServerMessageCodes.push(msg.getMsgCode());
     }
 
     @Override
     public void onComplete() {
-        AppLoggerHelper.info(TAG, "onComplete");
+        AppLoggerHelper.info(TAG, "onComplete: " + String.join(",", mPushServerMessageCodes));
 
-        // Triggered when entire incoming is processed. Application is reacting on individual
-        // messages, so we do not need to handle this as well.
+        // Notify application about the latest server message processed
+        // This is an optimization which avoids for example issuing a replenishment request
+        // just after the PROV_CARD command ("msgCode" : "CBP.info.tokenProvisioned") is processed
+        TshPushType lastServerMessage = TshPushType.UNKNOWN;
+        if(!mPushServerMessageCodes.empty()) {
+            lastServerMessage = TshPushType.getTypeFromString(mPushServerMessageCodes.pop());
+        }
+        InternalNotificationsUtils.onPushReceived(mContext, lastServerMessage, null);
+
+        mPushServerMessageCodes.clear();
+        mPushServerMessageCodes = new Stack<>();
     }
 
     //endregion

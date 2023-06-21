@@ -4,7 +4,12 @@
 
 package com.thalesgroup.tshpaysample.ui;
 
+import android.content.ComponentName;
+import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
+import android.nfc.NfcManager;
+import android.nfc.cardemulation.CardEmulation;
 import android.os.Bundle;
 import android.text.InputType;
 import android.widget.EditText;
@@ -18,6 +23,7 @@ import com.thalesgroup.tshpaysample.sdk.SdkHelper;
 import com.thalesgroup.tshpaysample.sdk.enrollment.TshEnrollment;
 import com.thalesgroup.tshpaysample.sdk.enrollment.TshEnrollmentDelegate;
 import com.thalesgroup.tshpaysample.sdk.enrollment.TshEnrollmentState;
+import com.thalesgroup.tshpaysample.sdk.payment.TshPaymentHceService;
 import com.thalesgroup.tshpaysample.ui.fragments.FragmentSplash;
 import com.thalesgroup.tshpaysample.ui.fragments.FragmentTermsAndConditions;
 import com.thalesgroup.tshpaysample.utlis.AppLoggerHelper;
@@ -44,10 +50,7 @@ public class CardListActivity extends BaseAppActivity implements TshEnrollmentDe
         // By default load splash screen.
         showFragment(new FragmentSplash(), false);
 
-        // Make sure, that our application is default one used for NFC payments, but only if NFC hardware is present
-        if (getPackageManager().hasSystemFeature("android.hardware.nfc")) {
-            SdkHelper.getInstance().getInit().checkTapAndPay();
-        }
+        checkAndSetDefaultForTapAndPay();
     }
 
     @Override
@@ -148,6 +151,41 @@ public class CardListActivity extends BaseAppActivity implements TshEnrollmentDe
                 break;
         }
 
+    }
+
+    //endregion
+
+
+    //region Private helpers
+    private void checkAndSetDefaultForTapAndPay() {
+        boolean hasNfc = getPackageManager().hasSystemFeature("android.hardware.nfc");
+        boolean supportsNfc = getPackageManager().hasSystemFeature("android.hardware.nfc.hce");
+
+        AppLoggerHelper.debug(TAG, String.format("Has NFC: %b; Supports HCE: %b", hasNfc, supportsNfc));
+
+        if (!hasNfc || !supportsNfc){
+            AppLoggerHelper.error(TAG, "The device does no have NFC interface or does not support HCE!");
+            return;
+        }
+
+        final ComponentName appHceComponent = new ComponentName(this, TshPaymentHceService.class.getCanonicalName());
+        final NfcManager manager = (NfcManager) this.getSystemService(Context.NFC_SERVICE);
+        final CardEmulation cardEmulation = CardEmulation.getInstance(manager.getDefaultAdapter());
+
+        if(cardEmulation.isDefaultServiceForCategory(appHceComponent, CardEmulation.CATEGORY_PAYMENT)){
+            AppLoggerHelper.debug(TAG, "App's service is already set as default for payment");
+        } else {
+            AppLoggerHelper.debug(TAG, "App's service is NOT set as default for payment => prompting the system to set it");
+
+            final Intent activate = new Intent();
+            activate.setAction(CardEmulation.ACTION_CHANGE_DEFAULT);
+            activate.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            activate.putExtra(CardEmulation.EXTRA_SERVICE_COMPONENT, appHceComponent);
+            activate.putExtra(CardEmulation.EXTRA_CATEGORY, CardEmulation.CATEGORY_PAYMENT);
+
+            // It is also possible to use startActivityForResult and react e.g. with a confirmation dialog when user chose "no"
+            this.startActivity(activate);
+        }
     }
 
     //endregion

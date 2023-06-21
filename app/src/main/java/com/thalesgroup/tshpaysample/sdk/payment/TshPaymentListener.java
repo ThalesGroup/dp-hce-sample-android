@@ -38,8 +38,7 @@ public class TshPaymentListener implements ContactlessPaymentServiceListener {
     //region Defines
 
     private static final String TAG = TshPaymentListener.class.getSimpleName();
-    protected static final int ERROR_THRESHOLD = 3;
-    protected static final int ERROR_DELAY = 2000;
+    protected static final int ERROR_DELAY = 300;
 
     private double mAmount;
     private String mCurrency;
@@ -48,7 +47,6 @@ public class TshPaymentListener implements ContactlessPaymentServiceListener {
     private TshPaymentState mPaymentState;
 
     protected Context mContext;
-    protected int mPosCommDisconnectedErrCount;
     protected Handler mDelayedError;
 
 
@@ -64,7 +62,7 @@ public class TshPaymentListener implements ContactlessPaymentServiceListener {
         mDelayedError = new Handler(Looper.getMainLooper());
 
         // Prepare default values.
-        resetState(true);
+        resetState();
     }
 
     public TshPaymentState getPaymentState() {
@@ -75,11 +73,7 @@ public class TshPaymentListener implements ContactlessPaymentServiceListener {
 
     //region Protected Helpers
 
-    protected void resetState(final boolean includingErrCount) {
-        if (includingErrCount) {
-            mPosCommDisconnectedErrCount = 0;
-        }
-
+    protected void resetState() {
         mAmount = 0.0;
         mCurrency = null;
         mPaymentState = TshPaymentState.STATE_NONE;
@@ -108,6 +102,7 @@ public class TshPaymentListener implements ContactlessPaymentServiceListener {
 
     /**
      * Callback indicating first tap transaction is completed.
+     * Note: This callback gets triggered only for PaymentExperience#TWO_TAP_ALWAYS
      */
     @Override
     public void onFirstTapCompleted() {
@@ -121,7 +116,7 @@ public class TshPaymentListener implements ContactlessPaymentServiceListener {
     @Override
     public void onTransactionStarted() {
         // All current state values are no longer relevant.
-        resetState(true);
+        resetState();
 
         loadCurrentCardData();
 
@@ -139,7 +134,7 @@ public class TshPaymentListener implements ContactlessPaymentServiceListener {
                                          final CHVerificationMethod chVerificationMethod,
                                          final long cvmResetTimeout) {
         // All current state values are no longer relevant.
-        resetState(true);
+        resetState();
 
         updateAmountAndCurrency(paymentService);
 
@@ -156,7 +151,7 @@ public class TshPaymentListener implements ContactlessPaymentServiceListener {
     @Override
     public void onTransactionCompleted(final TransactionContext transactionContext) {
         // All current state values are no longer relevant.
-        resetState(true);
+        resetState();
 
         updateAmountAndCurrency(transactionContext);
 
@@ -172,7 +167,7 @@ public class TshPaymentListener implements ContactlessPaymentServiceListener {
     @Override
     public void onReadyToTap(final PaymentService paymentService) {
         // All current state values are no longer relevant.
-        resetState(true);
+        resetState();
 
         updateAmountAndCurrency(paymentService);
 
@@ -205,47 +200,50 @@ public class TshPaymentListener implements ContactlessPaymentServiceListener {
     public void onNextTransactionReady(final DeactivationStatus deactivationStatus,
                                        final DigitalizedCardStatus digitalizedCardStatus,
                                        final DigitalizedCard digitalizedCard) {
-        if (digitalizedCard != null && digitalizedCard.getTokenizedCardID() != null) {
-            final CardWrapper cardWrapper = new CardWrapper(digitalizedCard.getTokenizedCardID());
+
+        AppLoggerHelper.info(TAG, String.format("onNextTransactionReady deactivationStatus: %s", deactivationStatus != null ? deactivationStatus.getSdkStatusCode() : "unknown"));
+
+        if (digitalizedCard != null && digitalizedCardStatus != null) {
+            final CardWrapper cardWrapper = new CardWrapper(digitalizedCard, digitalizedCardStatus);
             cardWrapper.replenishKeysIfNeeded(false);
         }
+
     }
 
     @Override
     public void onError(final SDKError<PaymentServiceErrorCode> sdkError) {
         AppLoggerHelper.info(TAG, "onError");
 
-        // All current state values are no longer relevant.
-        resetState(false);
-
-        // Handle POS disconnection since we want some threshold for better user experience.
-        // In this case we will wait {ERROR_DELAY}ms, {ERROR_THRESHOLD} times before propagating the
-        // error to the rest of the application.
-        boolean postDelay = false;
-        mPosCommDisconnectedErrCount++;
-        if (sdkError != null && sdkError.getErrorCode() == PaymentServiceErrorCode.POS_COMM_DISCONNECTED) {
-            if (mPosCommDisconnectedErrCount < ERROR_THRESHOLD) {
-                postDelay = true;
-            }
-        } else {
-            mPosCommDisconnectedErrCount = 0;
+        if(sdkError != null){
+            AppLoggerHelper.error(TAG, String.format("Error: %s:%s", sdkError.getErrorCode().name(), sdkError.getErrorMessage()));
         }
+        // All current state values are no longer relevant.
+        resetState();
+
+        // POS disconnection handling has been integrated in the SDK and is controlled via PaymentSettings API
+        // See https://developer.dbp.thalescloud.io/docs/tsh-hce-android/2waosjpqmsz03-payment-setting-api
+        // So when we get here it means that we either run of retries or we got timeout
+
 
         // It's possible that we get multiple error messages. Cancel previously scheduled update.
         mDelayedError.removeCallbacks(null);
 
-        // Only POS_COMM_DISCONNECTED withing the threshold is delayed since it can be recovered,
-        // by user action. Everything else is propagated directly.
-        if (postDelay) {
-            mDelayedError.postDelayed(() -> {
-                if (mPaymentState == TshPaymentState.STATE_ON_ERROR) {
-                    // check if state remains error after delay
-                    updateState(TshPaymentState.STATE_ON_ERROR, new TshPaymentErrorData(sdkError.getErrorCode().name(), sdkError.getErrorMessage(), mAmount, mCurrency, mCurrentCardId));
-                }
-            }, ERROR_DELAY);
-        } else {
-            updateState(TshPaymentState.STATE_ON_ERROR, new TshPaymentErrorData(sdkError.getErrorCode().name(), sdkError.getErrorMessage(), mAmount, mCurrency, mCurrentCardId));
-        }
+        // Postpone the screen transition a little bit to avoid screen flickering,
+        // because there are edge cases in which onError might be received before onTransactionCompleted
+        mDelayedError.postDelayed(() -> updateState(TshPaymentState.STATE_ON_ERROR,
+                new TshPaymentErrorData(sdkError.getErrorCode().name(),
+                        sdkError.getErrorMessage(),
+                        mAmount,
+                        mCurrency,
+                        mCurrentCardId)
+        ), ERROR_DELAY);
+
+    }
+
+    @Override
+    public void onTransactionInterrupted(int code, String message, int retriesLeft) {
+        AppLoggerHelper.info(TAG, String.format("onTransactionInterrupted: %d : %s; retriesLeft: %d", code, message, retriesLeft));
+        // TODO: Show a hint for the user saying for example "Keep the phone still and close to the terminal"
     }
 
     //endregion

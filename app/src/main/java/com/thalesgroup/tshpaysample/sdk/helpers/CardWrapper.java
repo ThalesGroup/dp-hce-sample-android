@@ -8,10 +8,8 @@ import android.content.Context;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
-import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -35,11 +33,7 @@ import com.gemalto.mfs.mwsdk.payment.PaymentBusinessService;
 import com.gemalto.mfs.mwsdk.payment.PaymentServiceErrorCode;
 import com.gemalto.mfs.mwsdk.payment.engine.TransactionContext;
 import com.gemalto.mfs.mwsdk.provisioning.ProvisioningServiceManager;
-import com.gemalto.mfs.mwsdk.provisioning.listener.PushServiceListener;
-import com.gemalto.mfs.mwsdk.provisioning.model.ProvisioningServiceError;
-import com.gemalto.mfs.mwsdk.provisioning.model.ProvisioningServiceErrorCodes;
 import com.gemalto.mfs.mwsdk.provisioning.sdkconfig.ProvisioningBusinessService;
-import com.gemalto.mfs.mwsdk.sdkconfig.AndroidContextResolver;
 import com.gemalto.mfs.mwsdk.sdkconfig.SDKError;
 import com.thalesgroup.tshpaysample.sdk.SdkHelper;
 import com.thalesgroup.tshpaysample.sdk.payment.TshPaymentListener;
@@ -67,6 +61,8 @@ public class CardWrapper {
     private final String mCardId;
     private final DigitalizedCard mDigitalizedCard;
 
+    private DigitalizedCardStatus mDigitalizedCardStatus;
+
     //endregion
 
     //region Life Cycle
@@ -74,6 +70,13 @@ public class CardWrapper {
     public CardWrapper(final String cardId) {
         mCardId = cardId;
         mDigitalizedCard = DigitalizedCardManager.getDigitalizedCard(cardId);
+        mDigitalizedCardStatus = null;
+    }
+
+    public CardWrapper(final DigitalizedCard card, final DigitalizedCardStatus cardStatus) {
+        mCardId = card.getTokenizedCardID();
+        mDigitalizedCard = card;
+        mDigitalizedCardStatus = cardStatus;
     }
 
     //endregion
@@ -284,21 +287,36 @@ public class CardWrapper {
     }
 
     public void replenishKeysIfNeeded(final boolean forcedReplenishment) {
-        getDigitalizedCardState(new AsyncHelperCardState.Delegate() {
-            @Override
-            public void onSuccess(final DigitalizedCardStatus value) {
-                if (value.needsReplenishment()) {
-                    final ProvisioningBusinessService businessService = ProvisioningServiceManager.getProvisioningBusinessService();
-                    businessService.sendRequestForReplenishment(mDigitalizedCard.getTokenizedCardID(),
-                            SdkHelper.getInstance().getPush(), forcedReplenishment);
-                }
-            }
 
-            @Override
-            public void onError(final String error) {
-                AppLoggerHelper.error(TAG, error);
-            }
-        });
+        // Slight optimization: if we already hold DigitalizedCardStatus
+        // we don't have to fetch it and go straight to the replenishment
+        if(mDigitalizedCardStatus!=null){
+            replenishIfNeeded(forcedReplenishment);
+        } else {
+
+            getDigitalizedCardState(new AsyncHelperCardState.Delegate() {
+                @Override
+                public void onSuccess(final DigitalizedCardStatus value) {
+                    mDigitalizedCardStatus = value;
+                    replenishIfNeeded(forcedReplenishment);
+                }
+
+                @Override
+                public void onError(final String error) {
+                    AppLoggerHelper.error(TAG, error);
+                }
+            });
+
+        }
+
+    }
+
+    private void replenishIfNeeded(boolean forcedReplenishment) {
+        if (mDigitalizedCardStatus != null && mDigitalizedCardStatus.needsReplenishment()) {
+            final ProvisioningBusinessService businessService = ProvisioningServiceManager.getProvisioningBusinessService();
+            businessService.sendRequestForReplenishment(mDigitalizedCard.getTokenizedCardID(),
+                    SdkHelper.getInstance().getPush(), forcedReplenishment);
+        }
     }
 
     //endregion

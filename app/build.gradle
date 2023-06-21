@@ -39,17 +39,13 @@ android {
     flavorDimensions "paymentExperience"
     productFlavors {
         // Payment experience
-        oneTapForeground {
-            dimension "paymentExperience"
-            versionNameSuffix "-oneTapForeground"
-        }
         oneTap {
             dimension "paymentExperience"
-            versionNameSuffix "-oneTap"
+            buildConfigField "String", "PAYMENT_EXPERIENCE_VARIANT", "\"ONE_TAP\""
         }
         twoTap {
             dimension "paymentExperience"
-            versionNameSuffix "-twoTap"
+            buildConfigField "String", "PAYMENT_EXPERIENCE_VARIANT", "\"TWO_TAP\""
         }
     }
 
@@ -79,15 +75,15 @@ android {
 dependencies {
 
     // Android support library
-    implementation 'androidx.appcompat:appcompat:1.5.1'
-    implementation 'com.google.android.material:material:1.7.0'
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'com.google.android.material:material:1.9.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
-    implementation 'com.google.android.gms:play-services-base:18.1.0'
+    implementation 'com.google.android.gms:play-services-base:18.2.0'
     implementation "androidx.biometric:biometric:1.1.0"
 
     // TSH Pay SDK
-    debugImplementation (files("libs/TSHPaySDK-dev-6.7.5.rc01.aar"))
-    releaseImplementation (files("libs/TSHPaySDK-release-6.7.5.rc01.aar"))
+    debugImplementation (files("libs/TSHPaySDK-6.8.0.rc02-dev.aar"))
+    releaseImplementation (files("libs/TSHPaySDK-6.8.0.rc02-release.aar"))
 
     // SDK Dependency
     implementation 'net.java.dev.jna:jna:5.6.0@aar'
@@ -101,7 +97,7 @@ dependencies {
     implementation 'com.huawei.hms:push:6.3.0.302'
 
     // JSON Support
-    implementation 'com.google.code.gson:gson:2.8.9'
+    implementation 'com.google.code.gson:gson:2.10'
 
     // Multi-dex application to prevent any size issue.
     implementation 'androidx.multidex:multidex:2.0.1'
