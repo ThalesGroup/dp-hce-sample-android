@@ -172,41 +172,37 @@ public class TshEnrollment implements CardEligibilityListener, MGDigitizationLis
     public void onCPSActivationCodeAcquired(final String identifier, final byte[] code) {
         updateState(TshEnrollmentState.DIGITIZATION_ACTIVATION_CODE_AQUIRED);
 
-        //Pass correct sender_Id to get correct token.
-        final String firebaseToken = SdkHelper.getInstance().getPush().getPushTokenLocal(mContext);
-        if (firebaseToken == null) {
-            throw new IllegalStateException(mContext.getString(R.string.push_token_missing));
-        }
+        SdkHelper.getInstance().getPush().getPushToken(token -> {
+            final EnrollingBusinessService enrollingService = ProvisioningServiceManager.getEnrollingBusinessService();
+            final ProvisioningBusinessService provisioningBusinessService = ProvisioningServiceManager.getProvisioningBusinessService();
 
-        final EnrollingBusinessService enrollingService = ProvisioningServiceManager.getEnrollingBusinessService();
-        final ProvisioningBusinessService provisioningBusinessService = ProvisioningServiceManager.getProvisioningBusinessService();
+            mActivationCode = new byte[code.length];
+            System.arraycopy(code, 0, mActivationCode, 0, code.length);
 
-        mActivationCode = new byte[code.length];
-        System.arraycopy(code, 0, mActivationCode, 0, code.length);
+            //WalletID of MG SDK is userID of CPS SDK Enrollment process
+            final String userId = MobileGatewayManager.INSTANCE.getCardEnrollmentService().getWalletId();
 
-        //WalletID of MG SDK is userID of CPS SDK Enrollment process
-        final String userId = MobileGatewayManager.INSTANCE.getCardEnrollmentService().getWalletId();
+            final EnrollmentStatus status = enrollingService.isEnrolled();
+            switch (status) {
+                case ENROLLMENT_NEEDED:
+                    updateState(TshEnrollmentState.DIGITIZATION_ACTIVATION_CODE_AQUIRED_ENROLLMENT_NEEDED);
 
-        final EnrollmentStatus status = enrollingService.isEnrolled();
-        switch (status) {
-            case ENROLLMENT_NEEDED:
-                updateState(TshEnrollmentState.DIGITIZATION_ACTIVATION_CODE_AQUIRED_ENROLLMENT_NEEDED);
-
-                //First card, first try
-                enrollingService.enroll(userId, firebaseToken, "en", this);
-                break;
-            case ENROLLMENT_IN_PROGRESS:
-                //First card, second try
-                enrollingService.continueEnrollment("en", this);
-                break;
-            case ENROLLMENT_COMPLETE:
-                //Second card
-                provisioningBusinessService.sendActivationCode(this);
-                break;
-            default:
-                AppLoggerHelper.error(TAG, "Unhandled status: " + status);
-                break;
-        }
+                    //First card, first try
+                    enrollingService.enroll(userId, token, "en", this);
+                    break;
+                case ENROLLMENT_IN_PROGRESS:
+                    //First card, second try
+                    enrollingService.continueEnrollment("en", this);
+                    break;
+                case ENROLLMENT_COMPLETE:
+                    //Second card
+                    provisioningBusinessService.sendActivationCode(this);
+                    break;
+                default:
+                    AppLoggerHelper.error(TAG, "Unhandled status: " + status);
+                    break;
+            }
+        });
     }
 
     @Override
@@ -310,9 +306,6 @@ public class TshEnrollment implements CardEligibilityListener, MGDigitizationLis
             // Notify rest of the application in UI thread.
             new Handler(Looper.getMainLooper()).post(() -> mDelegate.onStateChange(state, error));
         }
-
-        // Notify push handler as well. It's dependent on few steps.
-        SdkHelper.getInstance().getPush().onEnrollmentStateChange(state);
     }
 
     private void cleanUp() {

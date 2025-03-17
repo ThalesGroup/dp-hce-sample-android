@@ -12,6 +12,7 @@ import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;
+import com.thalesgroup.tshpaysample.R;
 import com.thalesgroup.tshpaysample.sdk.SdkHelper;
 import com.thalesgroup.tshpaysample.utlis.AppLoggerHelper;
 
@@ -63,6 +64,17 @@ public class FcmService extends FirebaseMessagingService {
             } else {
                 AppLoggerHelper.exception(TAG, "Fetching FCM registration token failed", task.getException());
             }
+        });
+    }
+
+    public static void getPushToken(@NonNull final Context context,
+                                    @NonNull final TshPush.PushTokenListener completion) {
+        FirebaseMessaging.getInstance().getToken().addOnCompleteListener(task -> {
+            if (!task.isSuccessful()) {
+                throw new IllegalStateException(context.getString(R.string.push_token_missing));
+            }
+
+           completion.onComplete(task.getResult());
         });
     }
 

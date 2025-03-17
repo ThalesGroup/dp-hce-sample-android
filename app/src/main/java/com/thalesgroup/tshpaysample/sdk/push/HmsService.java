@@ -11,6 +11,7 @@ import androidx.annotation.NonNull;
 import com.huawei.hms.api.HuaweiApiAvailability;
 import com.huawei.hms.push.HmsMessageService;
 import com.huawei.hms.push.RemoteMessage;
+import com.thalesgroup.tshpaysample.R;
 import com.thalesgroup.tshpaysample.sdk.SdkHelper;
 
 public class HmsService extends HmsMessageService {
@@ -21,6 +22,12 @@ public class HmsService extends HmsMessageService {
 
     private static boolean sIsHuaweiMainProvider = false;
 
+    // TODO: Is this enough or wee need to call
+    //  String token = HmsInstanceId.getInstance(MainActivity.this).getToken(appId, tokenScope);
+    //  It's ugly to need provide app id from json file. https://developer.huawei.com/consumer/en/doc/HMSCore-Guides/android-client-dev-0000001050042041
+
+    private static String sToken;
+
     //endregion
 
     //region HmsMessageService
@@ -28,6 +35,8 @@ public class HmsService extends HmsMessageService {
     @Override
     public void onNewToken(final @NonNull String token) {
         super.onNewToken(token);
+
+        sToken = token;
 
         // Some Huawei devices might also support google services in which case they
         // they are preferred.
@@ -62,6 +71,15 @@ public class HmsService extends HmsMessageService {
 
     public static void init() {
         sIsHuaweiMainProvider = true;
+    }
+
+    public static void getPushToken(@NonNull final Context context,
+                                    @NonNull final TshPush.PushTokenListener completion) {
+        if (sToken != null) {
+            completion.onComplete(sToken);
+        } else {
+            throw new IllegalStateException(context.getString(R.string.push_token_missing));
+        }
     }
 
     //endregion
