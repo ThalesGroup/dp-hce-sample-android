@@ -8,16 +8,15 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.thalesgroup.tshpaysample.R;
 import com.thalesgroup.tshpaysample.sdk.SdkHelper;
 import com.thalesgroup.tshpaysample.sdk.init.TshInitState;
+import com.thalesgroup.tshpaysample.sdk.init.TshInitStateEnum;
 import com.thalesgroup.tshpaysample.utlis.AppLoggerHelper;
 
 public class FragmentSplash extends AbstractFragment {
@@ -26,8 +25,7 @@ public class FragmentSplash extends AbstractFragment {
 
     private static final String TAG = FragmentSplash.class.getSimpleName();
 
-    private TshInitState mStateHandled = TshInitState.INACTIVE;
-    private Button mButtonRetry;
+    private TshInitStateEnum mStateHandled = TshInitStateEnum.INACTIVE;
     private TextView mTextState;
     private ProgressBar mProgressState;
 
@@ -49,8 +47,6 @@ public class FragmentSplash extends AbstractFragment {
 
         mTextState = retValue.findViewById(R.id.fragment_splash_text_state);
         mProgressState = retValue.findViewById(R.id.fragment_splash_progress_bar);
-        mButtonRetry = retValue.findViewById(R.id.fragment_splash_button_retry);
-        mButtonRetry.setOnClickListener(this::onButtonPressedRetry);
 
         return retValue;
     }
@@ -59,37 +55,32 @@ public class FragmentSplash extends AbstractFragment {
     public void onResume() {
         super.onResume();
 
-        checkState();
-    }
-
-    @Override
-    public void onInitStateChanged(@NonNull final TshInitState state,
-                                   @Nullable final String error) {
-        super.onInitStateChanged(state, error);
-
-        checkState();
+        // Start observing for changes. Internal logic will skip if the value will remain the same.
+        // We do not to reload current state, because that is automatically triggered by registration.
+        SdkHelper.getInstance().getInit().getSdkInitState().observe(this, this::checkState);
     }
 
     //endregion
 
     //region Private Helpers
 
-    private void checkState() {
-        final TshInitState currentState = SdkHelper.getInstance().getInit().geInitState();
+    private void checkState(final @Nullable TshInitState state) {
+        if (state == null) {
+            AppLoggerHelper.error(TAG, "SDK state should never be null.");
+            return;
+        }
 
-        AppLoggerHelper.debug(TAG, String.format("stateHandled = %s, currentState = %s", mStateHandled, currentState));
+        AppLoggerHelper.debug(TAG, String.format("stateHandled = %s, currentState = %s", mStateHandled, state));
 
-        if (!mStateHandled.equals(currentState)) {
-            switch (currentState) {
+        if (!mStateHandled.equals(state.getState())) {
+            switch (state.getState()) {
                 case INACTIVE:
                     break;
                 case INIT_IN_PROGRESS:
-                    mButtonRetry.setVisibility(View.INVISIBLE);
                     mProgressState.setVisibility(View.VISIBLE);
                     mTextState.setText(R.string.fragment_splash_state_in_progress);
                     break;
                 case INIT_FAILED:
-                    mButtonRetry.setVisibility(View.VISIBLE);
                     mProgressState.setVisibility(View.INVISIBLE);
                     mTextState.setText(R.string.fragment_splash_state_failed);
                     break;
@@ -97,29 +88,14 @@ public class FragmentSplash extends AbstractFragment {
                     getMainActivity().showFragment(new FragmentCardList(), false);
                     break;
                 default:
-                    AppLoggerHelper.error(TAG, "Unknown init state: " + currentState.toString());
+                    AppLoggerHelper.error(TAG, "Unknown init state: " + state);
                     break;
             }
 
-            mStateHandled = currentState;
-        }
-
-        if(currentState == TshInitState.INACTIVE){
-            AppLoggerHelper.info(TAG, "Init has not been started yet => starting it now...");
-            // Start from here if not done before from whatever reason
-            // One case is that app has set PaymentExperience.TWO_TAP_ALWAYS and init has been
-            // skipped from the App#onCreate
-            SdkHelper.getInstance().getInit().init(getContext());
+            mStateHandled = state.getState();
         }
     }
 
     //endregion
 
-    //region User Interface
-
-    private void onButtonPressedRetry(final View sender) {
-        SdkHelper.getInstance().getInit().init(getContext());
-    }
-
-    //endregion
 }

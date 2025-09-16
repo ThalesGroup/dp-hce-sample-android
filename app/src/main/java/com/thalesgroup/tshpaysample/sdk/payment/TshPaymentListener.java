@@ -10,9 +10,10 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Handler;
 import android.os.Looper;
-import android.util.Log;
 
 import androidx.annotation.NonNull;
+import androidx.lifecycle.LiveData;
+import androidx.lifecycle.MutableLiveData;
 
 import com.gemalto.mfs.mwsdk.dcm.DigitalizedCard;
 import com.gemalto.mfs.mwsdk.dcm.DigitalizedCardManager;
@@ -26,9 +27,11 @@ import com.gemalto.mfs.mwsdk.payment.engine.DeactivationStatus;
 import com.gemalto.mfs.mwsdk.payment.engine.PaymentService;
 import com.gemalto.mfs.mwsdk.payment.engine.TransactionContext;
 import com.gemalto.mfs.mwsdk.sdkconfig.SDKError;
+import com.gemalto.mfs.mwsdk.utils.async.AsyncResult;
 import com.thalesgroup.tshpaysample.sdk.SdkHelper;
 import com.thalesgroup.tshpaysample.sdk.helpers.CardWrapper;
-import com.thalesgroup.tshpaysample.sdk.helpers.InternalNotificationsUtils;
+import com.thalesgroup.tshpaysample.sdk.helpers.HceHelper;
+import com.thalesgroup.tshpaysample.sdk.init.TshInitStateEnum;
 import com.thalesgroup.tshpaysample.ui.PaymentActivity;
 import com.thalesgroup.tshpaysample.utlis.AppLoggerHelper;
 import com.thalesgroup.tshpaysample.utlis.UtilsCurrenciesConstants;
@@ -42,13 +45,34 @@ public class TshPaymentListener implements ContactlessPaymentServiceListener {
 
     private double mAmount;
     private String mCurrency;
-    private String mCurrentCardId;
 
     private TshPaymentState mPaymentState;
 
     protected Context mContext;
     protected Handler mDelayedError;
 
+    private final MutableLiveData<Integer> mReadyToTapTimeRemaining = new MutableLiveData<>(45);
+    private final MutableLiveData<String> mDefaultCardId = new MutableLiveData<>(null);
+    private CardWrapper mPreferredCard;
+
+    //endregion
+
+    //region Properties
+    public TshPaymentState getPaymentState() {
+        return mPaymentState;
+    }
+
+    public LiveData<Integer> getReadyToTapTimeRemaining() {
+        return mReadyToTapTimeRemaining;
+    }
+
+    public LiveData<String> getDefaultCardId(){
+        return mDefaultCardId;
+    }
+
+    public void saveDefaultAsPreferredCard() {
+        mPreferredCard = new CardWrapper(mDefaultCardId.getValue());
+    }
 
     //endregion
 
@@ -62,14 +86,50 @@ public class TshPaymentListener implements ContactlessPaymentServiceListener {
         mDelayedError = new Handler(Looper.getMainLooper());
 
         // Prepare default values.
+        initDefaultCardId();
         resetState();
     }
 
-    public TshPaymentState getPaymentState() {
-        return mPaymentState;
+    private void initDefaultCardId() {
+        SdkHelper.getInstance().getInit().getSdkInitState().observeForever(state -> {
+           if(state.getState() == TshInitStateEnum.INIT_SUCCESSFUL){
+               final AsyncResult<String> stringAsyncResult = DigitalizedCardManager.getDefault(PaymentType.CONTACTLESS, null).waitToComplete();
+
+               if(stringAsyncResult.isSuccessful()){
+                   onDefaultCardIdChanged(stringAsyncResult.getResult());
+               } else {
+                   AppLoggerHelper.error(TAG, "Failed to get default card id. Error: " + stringAsyncResult.getErrorMessage());
+               }
+           }
+
+        });
+    }
+
+    public void onDefaultCardIdChanged(final String newDefaultCardId){
+        mDefaultCardId.postValue(newDefaultCardId);
+    }
+
+    public void restoreOriginalDefaultCard(){
+
+        if(mPreferredCard != null && mPreferredCard.getCardId() != mDefaultCardId.getValue()){
+            mPreferredCard.setDefault((result, error) -> {
+                // We will do only logging here as the CardWrapper#setDefault handles the propagation of the change
+
+                if (result) {
+                    AppLoggerHelper.info(TAG, "Default card restored to " + mPreferredCard.getCardId());
+                } else {
+                    AppLoggerHelper.error(TAG, "Failed to restore original default card. Error: " + error);
+                }
+            });
+        }
     }
 
     //endregion
+
+
+
+
+
 
     //region Protected Helpers
 
@@ -84,7 +144,7 @@ public class TshPaymentListener implements ContactlessPaymentServiceListener {
                                final TshPaymentData data) {
         // Store last state so it can be read onResume when app was not in foreground.
         mPaymentState = state;
-        Log.d(TAG, "New payment state: " + state.toString());
+        AppLoggerHelper.debug(TAG, "New payment state: " + state.toString());
 
         // Notify rest of the application in UI thread.
         new Handler(Looper.getMainLooper()).post(() -> {
@@ -96,6 +156,7 @@ public class TshPaymentListener implements ContactlessPaymentServiceListener {
         });
     }
 
+
     //endregion
 
     //region ContactlessPaymentServiceListener
@@ -106,7 +167,8 @@ public class TshPaymentListener implements ContactlessPaymentServiceListener {
      */
     @Override
     public void onFirstTapCompleted() {
-        SdkHelper.getInstance().getInit().init(mContext);
+        // Call to SDK init is no longer needed here as we initialize from the App#onCreate already
+        // SdkHelper.getInstance().getInit().init(mContext);
     }
 
     /**
@@ -118,11 +180,12 @@ public class TshPaymentListener implements ContactlessPaymentServiceListener {
         // All current state values are no longer relevant.
         resetState();
 
-        loadCurrentCardData();
-
-        // Update state and notify everyone.
-        updateState(TshPaymentState.STATE_ON_TRANSACTION_STARTED, null);
-
+        // Emit the transaction started event only if the app's service is set as default
+        // The trouble is that in case of app handling the payment only while being foreground,
+        // the screen transition in between app's activities will break up the NFC transaction.
+        if(HceHelper.isHceServiceSetAsDefault(mContext)) {
+            updateState(TshPaymentState.STATE_ON_TRANSACTION_STARTED, null);
+        }
     }
 
     /**
@@ -138,10 +201,8 @@ public class TshPaymentListener implements ContactlessPaymentServiceListener {
 
         updateAmountAndCurrency(paymentService);
 
-        loadCurrentCardData();
-
         // Update state and notify everyone.
-        updateState(TshPaymentState.STATE_ON_AUTHENTICATION_REQUIRED, new TshPaymentAuthenticationRequestData(chVerificationMethod, mAmount, mCurrency, mCurrentCardId));
+        updateState(TshPaymentState.STATE_ON_AUTHENTICATION_REQUIRED, new TshPaymentAuthenticationRequestData(chVerificationMethod, mAmount, mCurrency, mDefaultCardId.getValue()));
 
     }
 
@@ -158,7 +219,7 @@ public class TshPaymentListener implements ContactlessPaymentServiceListener {
         mDelayedError.removeCallbacks(null);
 
         // Update state and notify everyone.
-        updateState(TshPaymentState.STATE_ON_TRANSACTION_COMPLETED, new TshPaymentData(mAmount, mCurrency, mCurrentCardId));
+        updateState(TshPaymentState.STATE_ON_TRANSACTION_COMPLETED, new TshPaymentData(mAmount, mCurrency, mDefaultCardId.getValue()));
     }
 
     /**
@@ -174,12 +235,9 @@ public class TshPaymentListener implements ContactlessPaymentServiceListener {
         paymentService.setCVMResetTimeoutListener(new CVMResetTimeoutListener() {
             @Override
             public void onCredentialsTimeoutCountDown(final int seconds) {
-                Log.d(TAG, "New payment state countdown: " + seconds);
+                AppLoggerHelper.debug(TAG, "New payment state countdown: " + seconds);
 
-                // Notify rest of the application in UI thread.
-                new Handler(Looper.getMainLooper()).post(() -> {
-                    InternalNotificationsUtils.updatePaymentCountdown(mContext, seconds);
-                });
+                mReadyToTapTimeRemaining.postValue(seconds);
             }
 
             @Override
@@ -188,12 +246,12 @@ public class TshPaymentListener implements ContactlessPaymentServiceListener {
                                              final long cvmResetTimeout) {
                 updateAmountAndCurrency(paymentService);
 
-                updateState(TshPaymentState.STATE_ON_ERROR, new TshPaymentErrorData("", "Timer exceeded", mAmount, mCurrency, mCurrentCardId));
+                updateState(TshPaymentState.STATE_ON_ERROR, new TshPaymentErrorData("", "Timer exceeded", mAmount, mCurrency, mDefaultCardId.getValue()));
             }
         });
 
         // Update state and notify everyone.
-        updateState(TshPaymentState.STATE_ON_READY_TO_TAP, new TshPaymentData(mAmount, mCurrency, mCurrentCardId));
+        updateState(TshPaymentState.STATE_ON_READY_TO_TAP, new TshPaymentData(mAmount, mCurrency, mDefaultCardId.getValue()));
     }
 
     @Override
@@ -212,10 +270,25 @@ public class TshPaymentListener implements ContactlessPaymentServiceListener {
 
     @Override
     public void onError(final SDKError<PaymentServiceErrorCode> sdkError) {
-        AppLoggerHelper.info(TAG, "onError");
 
+        // we would like to extend the error message in certain cases
+        final String errorMessage[] = new String[1];
+
+        // The callback is designed to be called always with an error, but just to be extra sure we will check it
         if(sdkError != null){
-            AppLoggerHelper.error(TAG, String.format("Error: %s:%s", sdkError.getErrorCode().name(), sdkError.getErrorMessage()));
+            AppLoggerHelper.error(TAG, String.format("onError: %s:%s", sdkError.getErrorCode().name(), sdkError.getErrorMessage()));
+
+            // showcase specific handling of a particular error code
+            if(sdkError.getErrorCode() == PaymentServiceErrorCode.CARD_OUT_OF_PAYMENT_KEYS){
+                errorMessage[0] = "You ran out of payment keys.\nWe are trying to fetch new ones.\nMake sure that the device is online.";
+
+                final CardWrapper cardWrapper = new CardWrapper(mDefaultCardId.getValue());
+                cardWrapper.replenishKeysIfNeeded(true);
+            }
+            // the rest of errors will be just sent to the UI
+            else {
+                errorMessage[0] = sdkError.getErrorMessage();
+            }
         }
         // All current state values are no longer relevant.
         resetState();
@@ -232,16 +305,19 @@ public class TshPaymentListener implements ContactlessPaymentServiceListener {
         // because there are edge cases in which onError might be received before onTransactionCompleted
         mDelayedError.postDelayed(() -> updateState(TshPaymentState.STATE_ON_ERROR,
                 new TshPaymentErrorData(sdkError.getErrorCode().name(),
-                        sdkError.getErrorMessage(),
+                        errorMessage[0],
                         mAmount,
                         mCurrency,
-                        mCurrentCardId)
+                        mDefaultCardId.getValue())
         ), ERROR_DELAY);
 
     }
 
     @Override
-    public void onTransactionInterrupted(int code, String message, int retriesLeft) {
+    public void onTransactionInterrupted(final int code, final String message, final int retriesLeft) {
+        // How many times this could occur depends on the SDK configuration provided by the app via
+        // PaymentSettings.setTransactionRetryLimit() & PaymentSettings.setTransactionRetryTimeout() APIs
+
         AppLoggerHelper.info(TAG, String.format("onTransactionInterrupted: %d : %s; retriesLeft: %d", code, message, retriesLeft));
         // TODO: Show a hint for the user saying for example "Keep the phone still and close to the terminal"
     }
@@ -249,10 +325,6 @@ public class TshPaymentListener implements ContactlessPaymentServiceListener {
     //endregion
 
     //region Private Helpers
-
-    private void loadCurrentCardData() {
-        mCurrentCardId = DigitalizedCardManager.getDefault(PaymentType.CONTACTLESS, null).waitToComplete().getResult();
-    }
 
     private TransactionContext retrieveTransactionContext(final PaymentService paymentService) {
 

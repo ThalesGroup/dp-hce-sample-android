@@ -4,9 +4,27 @@
 
 package com.thalesgroup.tshpaysample.sdk.init;
 
-public enum TshInitState {
-    INACTIVE,
-    INIT_IN_PROGRESS,
-    INIT_FAILED,
-    INIT_SUCCESSFUL
+public class TshInitState {
+    private final TshInitStateEnum mState;
+    private final String mError;
+
+    public TshInitState(final TshInitStateEnum state) {
+        mState = state;
+        mError = null;
+    }
+
+    public TshInitState(final TshInitStateEnum state, final String error) {
+        mState = state;
+        mError = error;
+    }
+
+    public TshInitStateEnum getState() {
+        return mState;
+    }
+
+    public String getError() {
+        return mError;
+    }
 }
+
+

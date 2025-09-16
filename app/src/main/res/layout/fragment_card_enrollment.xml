@@ -22,7 +22,7 @@
             android:layout_height="wrap_content"
             android:layout_gravity="start"
             android:layout_marginTop="16dp"
-            android:textColor="@color/black"
+            android:textColor="?attr/colorOnBackground"
             android:text="@string/fragment_card_enrollment_pan"/>
         <EditText
             android:id="@+id/fragment_card_enrollment_pan"
@@ -36,7 +36,7 @@
             android:layout_height="wrap_content"
             android:layout_gravity="start"
             android:layout_marginTop="16dp"
-            android:textColor="@color/black"
+            android:textColor="?attr/colorOnBackground"
             android:text="@string/fragment_card_enrollment_exp"/>
         <EditText
             android:id="@+id/fragment_card_enrollment_exp"
@@ -50,7 +50,7 @@
             android:layout_height="wrap_content"
             android:layout_gravity="start"
             android:layout_marginTop="16dp"
-            android:textColor="@color/black"
+            android:textColor="?attr/colorOnBackground"
             android:text="@string/fragment_card_enrollment_cvv"/>
         <EditText
             android:id="@+id/fragment_card_enrollment_cvv"

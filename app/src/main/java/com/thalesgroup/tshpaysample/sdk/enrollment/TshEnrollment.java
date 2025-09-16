@@ -45,7 +45,7 @@ public class TshEnrollment implements CardEligibilityListener, MGDigitizationLis
 
     //region Defines
 
-    private static final String TAG = TshEnrollment.class.getName();
+    private static final String TAG = TshEnrollment.class.getSimpleName();
 
     private Context mContext;
 
@@ -207,11 +207,13 @@ public class TshEnrollment implements CardEligibilityListener, MGDigitizationLis
 
     @Override
     public void onSelectIDVMethod(final IDVMethodSelector idvMethodSelector) {
+        AppLoggerHelper.debug(TAG, "MGDigitizationListener#onSelectIDVMethod()");
         mDelegate.onSelectIDVMethod(idvMethodSelector);
     }
 
     @Override
     public void onActivationRequired(final PendingCardActivation pendingCardActivation) {
+        AppLoggerHelper.debug(TAG, "MGDigitizationListener#onActivationRequired()");
         mDelegate.onActivationRequired(pendingCardActivation);
     }
 
@@ -262,7 +264,7 @@ public class TshEnrollment implements CardEligibilityListener, MGDigitizationLis
 
     @Override
     public void onComplete() {
-        updateState(TshEnrollmentState.ENROLLING_FINISHED_WAITING_FOR_SERVER);
+        updateState(TshEnrollmentState.ENROLLING_FINISHED);
     }
 
     //endregion
@@ -296,6 +298,13 @@ public class TshEnrollment implements CardEligibilityListener, MGDigitizationLis
     }
 
     private void updateState(final TshEnrollmentState state, final String error) {
+
+        if(error != null) {
+            AppLoggerHelper.error(TAG, "updateState: " + state + " error: " + error);
+        } else {
+            AppLoggerHelper.info(TAG, "updateState: " + state);
+        }
+
         // Same state as last time and it's not error. Nothing to handle.
         if (state.equals(mEnrollmentState) && !mEnrollmentState.isErrorState()) {
             return;

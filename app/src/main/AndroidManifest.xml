@@ -7,12 +7,16 @@
     -->
     <!-- internet is needed for TSHPaySDK to perform wallet and card enrolment and keys replenishemnt -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- To allow the application observing device connectivity state -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <!-- For TSHPaySDK to be able to use NFC -->
     <uses-permission android:name="android.permission.NFC" />
     <!-- In  case the Appliaction uses the biometric as CDCVM -->
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
     <!--Even if deprecated from Android 10, this is needed for Android 9 and below -->
     <uses-permission android:name="android.permission.USE_FINGERPRINT"/>
+
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
 
     <!-- For Payment Service -->
     <uses-feature
@@ -30,14 +34,14 @@
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"
-        android:theme="@style/Theme.TSHPaySample">
+        android:theme="@style/Theme.TSHPaySample.NEW">
 
         <!-- Application UI entry point. -->
         <activity
             android:name=".ui.CardListActivity"
             android:exported="true"
             android:screenOrientation="portrait"
-            android:theme="@style/Theme.TSHPaySample">
+            android:theme="@style/Theme.TSHPaySample.NEW">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -52,7 +56,7 @@
             android:launchMode="singleTask"
             android:screenOrientation="portrait"
             android:showOnLockScreen="true"
-            android:theme="@style/Theme.TSHPaySample"
+            android:theme="@style/Theme.TSHPaySample.NEW"
             android:windowSoftInputMode="adjustPan|stateHidden" />
 
 
@@ -84,6 +88,7 @@
         <service
             android:name="com.thalesgroup.tshpaysample.sdk.payment.TshPaymentHceService"
             android:exported="true"
+            android:description="@string/hce_service_description"
             android:label="@string/hce_service_label"
             android:permission="android.permission.BIND_NFC_SERVICE">
             <intent-filter>
@@ -95,6 +100,7 @@
                 android:name="android.nfc.cardemulation.host_apdu_service"
                 android:resource="@xml/apduservice" />
         </service>
+
 
         <provider
             android:name="androidx.core.content.FileProvider"

@@ -9,24 +9,20 @@ import androidx.annotation.Nullable;
 import androidx.annotation.StringRes;
 import androidx.fragment.app.Fragment;
 
-import com.thalesgroup.tshpaysample.sdk.init.TshInitState;
 import com.thalesgroup.tshpaysample.sdk.payment.TshPaymentState;
-import com.thalesgroup.tshpaysample.sdk.push.TshPushType;
+import com.thalesgroup.tshpaysample.sdk.push.ServerMessageInfo;
 import com.thalesgroup.tshpaysample.ui.CardListActivity;
 import com.thalesgroup.tshpaysample.ui.PaymentActivity;
+
+import java.util.List;
 
 public abstract class AbstractFragment extends Fragment {
 
     @StringRes
     public abstract int getFragmentCaption();
 
-    public void onInitStateChanged(@NonNull final TshInitState state,
-                                   @Nullable final String error) {
-        // Optional for other fragments.
-    }
-
-    public void onPushReceived(@NonNull final TshPushType state,
-                               @Nullable final String error) {
+    public void onPushMsgProcessingResult(@Nullable final List<ServerMessageInfo> serverMessageInfoList,
+                                          @Nullable final String error) {
         // Optional for other fragments.
     }
 
@@ -34,9 +30,6 @@ public abstract class AbstractFragment extends Fragment {
         // Optional for other fragments.
     }
 
-    public void onPaymentCountdownChanged(@NonNull final int remainingSeconds) {
-        // Optional for other fragments.
-    }
 
     public void onReloadData() {
         // Optional for other fragments.

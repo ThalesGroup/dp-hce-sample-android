@@ -1,0 +1,34 @@
+[versions]
+agcp = "1.9.1.301"
+agp = "8.12.0"
+appcompat = "1.7.1"
+biometric = "1.1.0"
+constraintlayout = "2.2.1"
+firebaseBom = "34.1.0"
+googleServices = "4.4.3"
+gradle = "8.12.0"
+jna = "5.17.0"
+material = "1.12.0"
+multidex = "2.0.1"
+playServicesBase = "18.7.2"
+push = "6.3.0.302"
+
+[libraries]
+agcp = { module = "com.huawei.agconnect:agcp", version.ref = "agcp" }
+appcompat = { module = "androidx.appcompat:appcompat", version.ref = "appcompat" }
+biometric = { module = "androidx.biometric:biometric", version.ref = "biometric" }
+constraintlayout = { module = "androidx.constraintlayout:constraintlayout", version.ref = "constraintlayout" }
+firebase-analytics = { module = "com.google.firebase:firebase-analytics" }
+firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
+firebase-messaging = { module = "com.google.firebase:firebase-messaging" }
+google-services = { module = "com.google.gms:google-services", version.ref = "googleServices" }
+gradle = { module = "com.android.tools.build:gradle", version.ref = "gradle" }
+jna = { module = "net.java.dev.jna:jna", version.ref = "jna" }
+material = { module = "com.google.android.material:material", version.ref = "material" }
+multidex = { module = "androidx.multidex:multidex", version.ref = "multidex" }
+play-services-base = { module = "com.google.android.gms:play-services-base", version.ref = "playServicesBase" }
+push = { module = "com.huawei.hms:push", version.ref = "push" }
+
+[plugins]
+android-application = { id = "com.android.application", version.ref = "agp" }
+

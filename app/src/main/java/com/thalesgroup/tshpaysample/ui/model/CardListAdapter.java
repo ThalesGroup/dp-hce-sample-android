@@ -13,6 +13,9 @@ import androidx.fragment.app.FragmentManager;
 import androidx.lifecycle.Lifecycle;
 import androidx.viewpager2.adapter.FragmentStateAdapter;
 
+import com.gemalto.mfs.mwsdk.dcm.DigitalizedCardManager;
+import com.gemalto.mfs.mwsdk.dcm.PaymentType;
+import com.gemalto.mfs.mwsdk.utils.async.AsyncResult;
 import com.thalesgroup.tshpaysample.sdk.helpers.CardListHelper;
 import com.thalesgroup.tshpaysample.sdk.helpers.CardWrapper;
 import com.thalesgroup.tshpaysample.ui.fragments.FragmentCardPage;
@@ -79,6 +82,7 @@ public class CardListAdapter extends FragmentStateAdapter {
 
     //region Public API
 
+
     public void reloadCardList() {
         new CardListHelper(mContext, new CardListHelper.Delegate() {
             @Override
@@ -86,9 +90,7 @@ public class CardListAdapter extends FragmentStateAdapter {
                 mCardList.clear();
                 mCardList.addAll(cardWrappers);
 
-                // For simplification we will set default card to first enrolled card.
-                checkDefaultCard();
-                checkReplenishment();
+                checkAndSetDefaultCard();
                 notifyPages();
             }
 
@@ -100,30 +102,32 @@ public class CardListAdapter extends FragmentStateAdapter {
         }).getAllCards();
     }
 
-    private void checkReplenishment() {
-        for (final CardWrapper loopCard : mCardList) {
-            loopCard.replenishKeysIfNeeded(false);
-        }
-    }
 
-    private void checkDefaultCard() {
-        final int cardCount = getItemCount();
-        final int[] cardProcessed = {0};
-        final boolean[] foundDefault = {false};
+    /***
+     * Checks if there is a default card already set and if not it looks for the the first active card and sets it as default.
+     * This makes sure that a default card is always set when possible.
+     */
+    private void checkAndSetDefaultCard(){
 
-        for (int loopCardIndex = 0; loopCardIndex < cardCount; loopCardIndex++) {
-            final CardWrapper loopCard = mCardList.get(loopCardIndex);
-            loopCard.isDefault((value, message) -> {
-                if (value) {
-                    foundDefault[0] = true;
-                } else {
-                    ++cardProcessed[0];
-                    if (cardProcessed[0] == cardCount && !foundDefault[0]) {
-                        setDefaultCard(loopCard);
+        final AsyncResult<String> defaultCardResult = DigitalizedCardManager.getDefault(PaymentType.CONTACTLESS, null).waitToComplete();
+
+        if(defaultCardResult.isSuccessful()) {
+            final String defaultCardId = defaultCardResult.getResult();
+
+            if(defaultCardId == null || defaultCardId.isEmpty()){
+                AppLoggerHelper.debug(TAG, "No default card found. Look for a card to set as default");
+
+                for(final CardWrapper loopCard : mCardList){
+                    if(loopCard.isActive()){
+                        loopCard.setDefault(null);
+                        break;
                     }
                 }
-            });
+            }
+        } else {
+            AppLoggerHelper.error(TAG, "Failed to get the default card: " + defaultCardResult.getErrorMessage());
         }
+
     }
 
     //endregion
@@ -144,15 +148,6 @@ public class CardListAdapter extends FragmentStateAdapter {
         }
     }
 
-    private void setDefaultCard(final CardWrapper card) {
-        card.setDefault((value, message) -> {
-            if (value) {
-                notifyPages();
-            } else if (message != null) {
-                AppLoggerHelper.error(TAG, message);
-            }
-        });
-    }
 
     //endregion
 

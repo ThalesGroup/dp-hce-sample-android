@@ -47,7 +47,7 @@ public class FragmentCardEnrollment extends AbstractFragment {
 
         // Load UI elements and default test data.
         mViewCardFront = retValue.findViewById(R.id.fragment_card_enrollment_card_visual);
-        mEditPan = initEdit(retValue, R.id.fragment_card_enrollment_pan, R.string.test_data_yellow_pan, true);
+        mEditPan = initEdit(retValue, R.id.fragment_card_enrollment_pan, R.string.test_data_pan, true);
         mEditExp = initEdit(retValue, R.id.fragment_card_enrollment_exp, R.string.test_data_exp, true);
         mEditCvv = initEdit(retValue, R.id.fragment_card_enrollment_cvv, R.string.test_data_cvv, false);
 

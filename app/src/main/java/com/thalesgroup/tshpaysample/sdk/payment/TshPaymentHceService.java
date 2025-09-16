@@ -39,6 +39,8 @@ public class TshPaymentHceService extends AsyncHCEService {
     }
 
     @Override
-    public void setupPluginRegistration() {}
+    public void setupPluginRegistration() {
+        // Not needed in scope of the sample app.
+    }
 
 }

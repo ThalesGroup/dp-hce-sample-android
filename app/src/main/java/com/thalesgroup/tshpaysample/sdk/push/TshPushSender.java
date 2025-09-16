@@ -8,7 +8,7 @@ public enum TshPushSender {
     UNKNOWN, CPS, MG, TNS;
 
     static TshPushSender senderFromString(final String value) {
-        for (TshPushSender loopSender : TshPushSender.values()) {
+        for (final TshPushSender loopSender : TshPushSender.values()) {
             if (loopSender.name().equalsIgnoreCase(value)) {
                 return loopSender;
             }

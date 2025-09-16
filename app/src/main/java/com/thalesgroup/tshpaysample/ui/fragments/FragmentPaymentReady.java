@@ -11,13 +11,17 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 
 import com.thalesgroup.tshpaysample.R;
+import com.thalesgroup.tshpaysample.sdk.SdkHelper;
 import com.thalesgroup.tshpaysample.sdk.helpers.CardWrapper;
 import com.thalesgroup.tshpaysample.sdk.payment.TshPaymentData;
 import com.thalesgroup.tshpaysample.ui.views.ViewCardFront;
+import com.thalesgroup.tshpaysample.utlis.AppLoggerHelper;
 
 import java.util.Locale;
 
 public class FragmentPaymentReady extends AbstractFragment {
+
+    private static final String TAG = FragmentPaymentReady.class.getSimpleName();
 
     //region Defines
 
@@ -56,11 +60,16 @@ public class FragmentPaymentReady extends AbstractFragment {
 
             cardFrontView.loadCardDetails(new CardWrapper(data.getDigitalizedCardId()));
         }
+
+        AppLoggerHelper.debug(TAG, "Registering time remaining listener");
+
+        SdkHelper.getInstance().getTshPaymentListener().getReadyToTapTimeRemaining().observe(getViewLifecycleOwner(), this::onReadyToTapTimeRemainingChanged);
+
         return root;
     }
 
-    @Override
-    public void onPaymentCountdownChanged(final int remainingSeconds) {
+    public void onReadyToTapTimeRemainingChanged(final Integer remainingSeconds) {
+        AppLoggerHelper.debug(TAG, "onReadyToTapTimeRemainingChanged(): " + remainingSeconds);
         mSecondsTextView.setText(String.format(Locale.getDefault(), "%d s", remainingSeconds));
     }
 

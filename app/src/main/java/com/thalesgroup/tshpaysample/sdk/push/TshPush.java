@@ -10,9 +10,9 @@ import android.os.Bundle;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import com.gemalto.mfs.mwsdk.mobilegateway.MGSDKConfigurationState;
 import com.gemalto.mfs.mwsdk.provisioning.ProvisioningServiceManager;
 import com.gemalto.mfs.mwsdk.provisioning.listener.PushServiceListener;
+import com.gemalto.mfs.mwsdk.provisioning.model.KnownMessageCode;
 import com.gemalto.mfs.mwsdk.provisioning.model.ProvisioningServiceError;
 import com.gemalto.mfs.mwsdk.provisioning.model.ProvisioningServiceMessage;
 import com.gemalto.mfs.mwsdk.provisioning.sdkconfig.ProvisioningBusinessService;
@@ -20,10 +20,12 @@ import com.thalesgroup.tshpaysample.R;
 import com.thalesgroup.tshpaysample.sdk.SdkHelper;
 import com.thalesgroup.tshpaysample.sdk.helpers.CardWrapper;
 import com.thalesgroup.tshpaysample.sdk.helpers.InternalNotificationsUtils;
+import com.thalesgroup.tshpaysample.sdk.init.TshInitStateEnum;
 import com.thalesgroup.tshpaysample.utlis.AppLoggerHelper;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
-import java.util.Stack;
 
 public final class TshPush implements PushServiceListener {
 
@@ -50,7 +52,7 @@ public final class TshPush implements PushServiceListener {
     private Context mContext;
 
     // Used for tracking server message codes that were processed
-    private Stack<String> mPushServerMessageCodes;
+    private List<ServerMessageInfo> mServerMessages;
 
     //endregion
 
@@ -61,7 +63,7 @@ public final class TshPush implements PushServiceListener {
      */
     public void init(@NonNull final Context context) {
         mContext = context;
-        mPushServerMessageCodes = new Stack<>();
+        mServerMessages = new ArrayList<>();
 
         // Decide which push notification service we want to use.
         if (FcmService.isAvailable(context)) {
@@ -113,6 +115,7 @@ public final class TshPush implements PushServiceListener {
 
             @Override
             public void onComplete() {
+                // Push token was successfully updated.
             }
         });
     }
@@ -139,6 +142,7 @@ public final class TshPush implements PushServiceListener {
                     AppLoggerHelper.error(TAG, context.getString(R.string.push_received_transaction_history));
                     break;
                 case UNKNOWN:
+                default:
                     // Notification is not from Tsh. This is example how app can handle
                     // own push notification.
                     AppLoggerHelper.error(TAG, context.getString(R.string.push_received_unknown));
@@ -176,17 +180,20 @@ public final class TshPush implements PushServiceListener {
             }
         }
 
-        // We will return data back only in case that SDK is fully initialized,
-        // or received message is not from TSH. If the message is Tsh, but SDK is not initialized,
-        // we will store data for future processing.
+        // We want to process the message even if the app is not running for LCM, replenishment etc...
+        // Find the sender of the message. If it's not Thales we do not need to check SDK state.
+        // Delegate will not process such messages.
         final TshPushSender pushSender = TshPushSender.senderFromString(retSender);
-        final boolean isTshConfigured = SdkHelper.getInstance().getInit().getMgSdkState() == MGSDKConfigurationState.CONFIGURED;
-        if (isTshConfigured || pushSender == TshPushSender.UNKNOWN) {
+        if (SdkHelper.getInstance().getInit().getSdkInitStateValue().getState() == TshInitStateEnum.INIT_SUCCESSFUL) {
             delegate.onMessageProcessed(bundle, pushSender, retAction, retDigitalCardID);
         } else {
-            // TODO: We need to init the SDK and process the push notification directly.
-            // SDK is not yet loaded. Store unprocessed notification and use it after init.
-            AppLoggerHelper.error(TAG, context.getString(R.string.push_received_sdk_not_initialized));
+            final String finalRetAction = retAction;
+            final String finalRetDigitalCardID = retDigitalCardID;
+            SdkHelper.getInstance().getInit().getSdkInitState().observeForever(state -> {
+                if (state.getState() == TshInitStateEnum.INIT_SUCCESSFUL) {
+                    delegate.onMessageProcessed(bundle, pushSender, finalRetAction, finalRetDigitalCardID);
+                }
+            });
         }
     }
 
@@ -196,15 +203,14 @@ public final class TshPush implements PushServiceListener {
 
     @Override
     public void onError(final ProvisioningServiceError provisioningServiceError) {
-        AppLoggerHelper.info(TAG, "onError");
+        AppLoggerHelper.info(TAG, "onError(): " + provisioningServiceError.getSdkErrorCode() + ":" + provisioningServiceError.getErrorMessage());
 
-        // Notify application about push processing issue.
-        InternalNotificationsUtils.onPushReceived(mContext, TshPushType.UNKNOWN, provisioningServiceError.getErrorMessage());
+        InternalNotificationsUtils.onPushMsgProcessingFailed(mContext, provisioningServiceError.getErrorMessage());
     }
 
     @Override
     public void onUnsupportedPushContent(final Bundle bundle) {
-        AppLoggerHelper.info(TAG, "onUnsupportedPushContent");
+        AppLoggerHelper.warn(TAG, "onUnsupportedPushContent(): " + bundle);
 
         // Irrelevant for sample application.
     }
@@ -212,27 +218,26 @@ public final class TshPush implements PushServiceListener {
     @Override
     public void onServerMessage(final String tokenizedCardId,
                                 final ProvisioningServiceMessage msg) {
-        AppLoggerHelper.info(TAG, "onServerMessage: " + msg.getMsgCode());
+        final ServerMessageInfo serverMessageInfo = new ServerMessageInfo(tokenizedCardId, msg.getMsgCode());
 
-        // add them provisioning message to the list and process them only at the completion time
-        mPushServerMessageCodes.push(msg.getMsgCode());
+        AppLoggerHelper.info(TAG, "onServerMessage(): " + serverMessageInfo);
+
+        mServerMessages.add(serverMessageInfo);
+    }
+
+    public void onVisaCardReplenished(final String tokenizedCardId){
+        final ServerMessageInfo serverMessageInfo = new ServerMessageInfo(tokenizedCardId, KnownMessageCode.REQUEST_REPLENISH_KEYS);
+        mServerMessages.add(serverMessageInfo);
     }
 
     @Override
     public void onComplete() {
-        AppLoggerHelper.info(TAG, "onComplete: " + String.join(",", mPushServerMessageCodes));
+        AppLoggerHelper.info(TAG, "onComplete(): processed " + mServerMessages.size() + " messages");
 
-        // Notify application about the latest server message processed
-        // This is an optimization which avoids for example issuing a replenishment request
-        // just after the PROV_CARD command ("msgCode" : "CBP.info.tokenProvisioned") is processed
-        TshPushType lastServerMessage = TshPushType.UNKNOWN;
-        if(!mPushServerMessageCodes.empty()) {
-            lastServerMessage = TshPushType.getTypeFromString(mPushServerMessageCodes.pop());
-        }
-        InternalNotificationsUtils.onPushReceived(mContext, lastServerMessage, null);
+        InternalNotificationsUtils.onPushProcessingCompleted(mContext, new ArrayList<>(mServerMessages));
 
-        mPushServerMessageCodes.clear();
-        mPushServerMessageCodes = new Stack<>();
+        mServerMessages.clear();
+        mServerMessages = new ArrayList<>();
     }
 
     //endregion

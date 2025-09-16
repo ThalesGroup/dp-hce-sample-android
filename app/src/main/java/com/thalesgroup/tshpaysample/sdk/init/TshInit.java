@@ -5,17 +5,21 @@
 package com.thalesgroup.tshpaysample.sdk.init;
 
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.os.Handler;
 import android.os.Looper;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.lifecycle.LiveData;
+import androidx.lifecycle.MutableLiveData;
 
 import com.gemalto.mfs.mwsdk.mobilegateway.MGSDKConfigurationState;
 import com.gemalto.mfs.mwsdk.mobilegateway.MobileGatewayManager;
 import com.gemalto.mfs.mwsdk.mobilegateway.exception.MGConfigurationException;
+import com.gemalto.mfs.mwsdk.payment.CustomConfiguration;
 import com.gemalto.mfs.mwsdk.payment.cdcvm.DeviceCVMPreEntryReceiver;
-import com.gemalto.mfs.mwsdk.payment.engine.ContactlessPaymentServiceListener;
 import com.gemalto.mfs.mwsdk.payment.experience.PaymentExperience;
 import com.gemalto.mfs.mwsdk.payment.experience.PaymentExperienceSettings;
 import com.gemalto.mfs.mwsdk.payment.sdkconfig.SDKDataController;
@@ -31,8 +35,7 @@ import com.gemalto.mfs.mwsdk.sdkconfig.SDKControllerListener;
 import com.gemalto.mfs.mwsdk.sdkconfig.SDKError;
 import com.gemalto.mfs.mwsdk.sdkconfig.SDKInitializeErrorCode;
 import com.gemalto.mfs.mwsdk.sdkconfig.SDKSetupProgressState;
-import com.thalesgroup.tshpaysample.BuildConfig;
-import com.thalesgroup.tshpaysample.sdk.helpers.InternalNotificationsUtils;
+import com.thalesgroup.tshpaysample.R;
 import com.thalesgroup.tshpaysample.utlis.AppLoggerHelper;
 
 public class TshInit {
@@ -47,9 +50,7 @@ public class TshInit {
 
     protected Context mContext;
     protected int mInitAttemptCount = 0;
-    protected TshInitState mInitState = TshInitState.INACTIVE;
-    protected String mInitError = null;
-    protected DeviceCVMPreEntryReceiver mPreEntryReceiver;
+    protected MutableLiveData<TshInitState> mInitState = new MutableLiveData<>(new TshInitState(TshInitStateEnum.INACTIVE));
 
     public interface InitSdkCallback {
         void onSuccess();
@@ -57,62 +58,53 @@ public class TshInit {
         void onError(final String error);
     }
 
-    private static final String PAYMENT_EXPERIENCE_ONE_TAP = "ONE_TAP";
-    private static final String PAYMENT_EXPERIENCE_TWO_TAP = "TWO_TAP";
-
     //endregion
 
     //region Public API
 
-    public MGSDKConfigurationState getMgSdkState() {
-        return MobileGatewayManager.INSTANCE.getConfigurationState();
-    }
-
-    public void init(@NonNull final Context context){
-        init(context, false);
-    }
-
-    /**
-     * Initializes the SDK
-     * @param context
-     * @param fromAppOnCreate    Indicates if the request is coming from App#onCreate method.
-     *                           We track that because for TWO_TAP_ALWAYS we want to postpone the
-     *                           init to {@link ContactlessPaymentServiceListener#onFirstTapCompleted()}
-     *                           as per the developer portal doc:
-     *                           https://developer.dbp.thalescloud.io/docs/tsh-hce-android/2b6d6cbf0fc6e-payment-fast-path-pfp
-     */
-    public void init(@NonNull final Context context, final boolean fromAppOnCreate) {
-        mContext = context;
-
-        final PaymentExperience paymentExperience = PaymentExperienceSettings.getPaymentExperience(context);
-
-        if (PAYMENT_EXPERIENCE_ONE_TAP.equals(BuildConfig.PAYMENT_EXPERIENCE_VARIANT)) {
-            if (paymentExperience == PaymentExperience.ONE_TAP_REQUIRES_SDK_INITIALIZED) {
-                // Payment experience has not yet been set
-                // For this build variant we will set in that case PaymentExperience.ONE_TAP_ENABLED
-                PaymentExperienceSettings.setPaymentExperience(mContext, PaymentExperience.ONE_TAP_ENABLED);
-            }
-        } else if (PAYMENT_EXPERIENCE_TWO_TAP.equals(BuildConfig.PAYMENT_EXPERIENCE_VARIANT)) {
-            if(paymentExperience == PaymentExperience.TWO_TAP_ALWAYS && fromAppOnCreate){
-                // Do nothing as init is meant to be called only from
-                // ContactlessPaymentServiceListener#onFirstTapCompleted() as per the developer guide:
-                // https://developer.dbp.thalescloud.io/docs/tsh-hce-android/2b6d6cbf0fc6e-payment-fast-path-pfp
-                AppLoggerHelper.debug(TAG, "Ignoring init request from App#onCreated");
-                return;
-            }
-
-            if (paymentExperience == PaymentExperience.ONE_TAP_REQUIRES_SDK_INITIALIZED) {
-                // Payment experience has not yet been set
-                // For this build variant we will set in that case PaymentExperience.TWO_TAP_ALWAYS
-                PaymentExperienceSettings.setPaymentExperience(mContext, PaymentExperience.TWO_TAP_ALWAYS);
-            }
-        } else {
-            throw new RuntimeException("Payment experience not supported by the sample application.");
-        }
-
+    public void init(@NonNull final Context context) {
         AppLoggerHelper.debug(TAG, "Proceeding with SDK init");
 
-        executeInit();
+        // Store current context.
+        mContext = context;
+
+        // Select desired payment experience before SDK init.
+        PaymentExperienceSettings.setPaymentExperience(mContext, PaymentExperience.ONE_TAP_ENABLED);
+
+        // Notify UI, that we started with SDK init.
+        updateState(TshInitStateEnum.INIT_IN_PROGRESS);
+
+        // CPS and MG might be initialised independently, however in order to keep
+        // code simpler and not keep track for multiple states, we would do it in series.
+        initCpsSdk(new InitSdkCallback() {
+            @Override
+            public void onSuccess() {
+
+                // Init of MG component is delayed in case that app cold starts when POS is tapped
+                // because it could slow down the payment processing otherwise
+                new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                    initMgSdk(new InitSdkCallback() {
+                        @Override
+                        public void onSuccess() {
+                            updateState(TshInitStateEnum.INIT_SUCCESSFUL);
+                        }
+
+                        @Override
+                        public void onError(final String error) {
+                            updateState(TshInitStateEnum.INIT_FAILED, error);
+                        }
+                    });
+                }, INIT_DELAY_MS);
+
+                registerDeviceCVMPreEntryReceiver();
+            }
+
+            @Override
+            public void onError(final String error) {
+                // Informational only. Actual error is handled by updateInitState.
+                AppLoggerHelper.error(TAG, "InitSdkCallback#onError(): " + error);
+            }
+        });
     }
 
     public void performWseIfNeeded(@NonNull final InitSdkCallback callback) {
@@ -156,25 +148,29 @@ public class TshInit {
 
     //region Properties
 
-    public TshInitState geInitState() {
+    public LiveData<TshInitState> getSdkInitState() {
         return mInitState;
     }
 
-    public final String getInitError() {
-        return mInitError;
+    public TshInitState getSdkInitStateValue() {
+        if (mInitState.getValue() != null) {
+            return mInitState.getValue();
+        } else {
+            throw new IllegalStateException(mContext.getString(R.string.sdk_incorrect_state));
+        }
     }
 
     //endregion
 
     //region Protected Helpers
 
-    protected void updateState(@NonNull final TshInitState state) {
+    protected void updateState(@NonNull final TshInitStateEnum state) {
         // Wallet secure enrollment is expensive task and so we are calling in only when it's
         // necessary. During SDK init it's required only in case of migration when
         // we already have some tokens enrolled. Otherwise it will be done during initial
         // card enrollment.
         final EnrollingBusinessService enrollingService = ProvisioningServiceManager.getEnrollingBusinessService();
-        if (state == TshInitState.INIT_SUCCESSFUL && enrollingService.isEnrolled() == EnrollmentStatus.ENROLLMENT_COMPLETE) {
+        if (state == TshInitStateEnum.INIT_SUCCESSFUL && enrollingService.isEnrolled() == EnrollmentStatus.ENROLLMENT_COMPLETE) {
             performWseIfNeeded(new InitSdkCallback() {
                 @Override
                 public void onSuccess() {
@@ -183,7 +179,7 @@ public class TshInit {
 
                 @Override
                 public void onError(final String error) {
-                    updateState(TshInitState.INIT_FAILED, error);
+                    updateState(TshInitStateEnum.INIT_FAILED, error);
                 }
             });
         } else {
@@ -191,49 +187,11 @@ public class TshInit {
         }
     }
 
-    protected void updateState(@NonNull final TshInitState state,
+    protected void updateState(@NonNull final TshInitStateEnum state,
                                @Nullable final String error) {
-        mInitState = state;
-        mInitError = error;
-
-        InternalNotificationsUtils.updateInitState(mContext, state, error);
+        mInitState.postValue(new TshInitState(state, error));
     }
 
-    protected void executeInit() {
-
-        // Notify UI, that we started with SDK init.
-        updateState(TshInitState.INIT_IN_PROGRESS);
-
-        // CPS and MG might be initialised independently, however in order to keep
-        // code simpler and not keep track for multiple states, we would do it in series.
-        initCpsSdk(new InitSdkCallback() {
-            @Override
-            public void onSuccess() {
-
-                // Init of MG component is delayed in case that app cold starts when POS is tapped
-                // because it could slow down the payment processing otherwise
-                new Handler(Looper.getMainLooper()).postDelayed(() -> {
-                    initMgSdk(new InitSdkCallback() {
-                        @Override
-                        public void onSuccess() {
-                            updateState(TshInitState.INIT_SUCCESSFUL);
-                        }
-
-                        @Override
-                        public void onError(final String error) {
-                            updateState(TshInitState.INIT_FAILED, error);
-                        }
-                    });
-                }, INIT_DELAY_MS);
-            }
-
-            @Override
-            public void onError(final String error) {
-                // Informational only. Actual error is handled by updateInitState.
-                AppLoggerHelper.error(TAG, "InitSdkCallback#onError(): " + error);
-            }
-        });
-    }
 
     protected void initMgSdk(@NonNull final InitSdkCallback callback) {
         final MobileGatewayManager mobileGatewayManager = MobileGatewayManager.INSTANCE;
@@ -256,7 +214,21 @@ public class TshInit {
     protected void initCpsSdk(@NonNull final InitSdkCallback callback) {
         mInitAttemptCount++;
         final SDKControllerListener sdkControllerListener = createSDKControllerListenerObject(callback);
-        SDKInitializer.INSTANCE.initialize(mContext, sdkControllerListener);
+
+        // Configure Flexible CDCVM risk management parameters
+        // Ref: https://developer.dbp.thalescloud.io/docs/tsh-hce-android/fe50c969aaba4-fcdcvm-risk-management
+        // Note: the following settings (except keyValidityPeriod) are only applicable fo payment experience
+        // set to ONE_TAP_ENABLED
+        final CustomConfiguration customConfiguration = new CustomConfiguration.Builder()
+                .domesticCurrencyCode(978) // EUR
+                .singleTransactionAmountLimitForLVT(2000) // 20 EUR
+                .maxCumulativeAmountForLVT(10000) // 100 EUR
+                .maxConsecutivePaymentsForLVT(5)
+                .keyValidityPeriod(45)
+                .supportTransitWithoutCDCVM(true)
+                .build();
+
+        SDKInitializer.INSTANCE.initialize(mContext, customConfiguration, sdkControllerListener);
     }
 
     protected SDKControllerListener createSDKControllerListenerObject(@NonNull final InitSdkCallback callback) {
@@ -267,7 +239,7 @@ public class TshInit {
                 callback.onError(initializeError.getErrorMessage());
 
                 // Update data layer and notify UI.
-                updateState(TshInitState.INIT_FAILED, initializeError.getErrorMessage());
+                updateState(TshInitStateEnum.INIT_FAILED, initializeError.getErrorMessage());
 
                 if (initializeError.getErrorCode() == SDKInitializeErrorCode.SDK_INITIALIZED) {
                     callback.onSuccess();
@@ -296,7 +268,7 @@ public class TshInit {
                     callback.onError(initializeError.getErrorMessage());
 
                     // Update data layer and notify UI.
-                    updateState(TshInitState.INIT_FAILED, initializeError.getErrorMessage());
+                    updateState(TshInitStateEnum.INIT_FAILED, initializeError.getErrorMessage());
                 }
 
             }
@@ -313,6 +285,14 @@ public class TshInit {
                 callback.onSuccess();
             }
         };
+    }
+
+    protected void registerDeviceCVMPreEntryReceiver(){
+        final DeviceCVMPreEntryReceiver receiver = new DeviceCVMPreEntryReceiver();
+        receiver.init();
+
+        final IntentFilter filter = new IntentFilter(Intent.ACTION_USER_PRESENT);
+        mContext.registerReceiver(receiver, filter);
     }
 
     //endregion

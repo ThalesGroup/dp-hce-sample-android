@@ -113,9 +113,7 @@ public class FragmentCardPage extends Fragment {
         mCardVisual.loadCardDetails(mCardWrapper);
 
         // Load additional card info.
-        mCardWrapper.isDefault((value, message) -> {
-            mTextIsDefault.setText(value ? R.string.common_word_yes : R.string.common_word_no);
-        });
+        mTextIsDefault.setText(mCardWrapper.isDefault() ? R.string.common_word_yes : R.string.common_word_no);
 
         // First disable all buttons except delete. Individual actions will be enabled based on state.
         mButtonActivate.setEnabled(false);
@@ -134,9 +132,7 @@ public class FragmentCardPage extends Fragment {
                     case ACTIVE:
                         mButtonSuspend.setEnabled(true);
                         mButtonPayment.setEnabled(true);
-                        mCardWrapper.isDefault((isDefault, message) -> {
-                            mButtonSetDefault.setEnabled(!isDefault);
-                        });
+                        mButtonSetDefault.setEnabled(!mCardWrapper.isDefault());
                         break;
                     case SUSPENDED:
                         final PendingCardActivation pendingActiovation = mCardWrapper.getPendingActivation();
@@ -196,14 +192,15 @@ public class FragmentCardPage extends Fragment {
     }
 
     private void onButtonPressedSetDefault(final View sender) {
-        mCardWrapper.setDefault((value, message) -> {
-            final CardListActivity cardListActivity = getMainActivity();
-            if (value && cardListActivity != null) {
-                cardListActivity.reloadFragmentData();
-            } else if (cardListActivity != null) {
-                mCardOperationDelegate.onFinished(value, message);
-            }
-        });
+        mCardWrapper.setDefault(mCardOperationDelegate);
+//        mCardWrapper.setDefault((value, message) -> {
+//            final CardListActivity cardListActivity = getMainActivity();
+//            if (value && cardListActivity != null) {
+//                cardListActivity.reloadFragmentData();
+//            } else if (cardListActivity != null) {
+//                mCardOperationDelegate.onFinished(value, message);
+//            }
+//        });
     }
 
     private void onButtonPressedDelete(final View sender) {

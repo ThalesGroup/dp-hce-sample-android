@@ -28,7 +28,7 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
             android:text="@string/authentication_prompt_info_subtitle"
-            android:textColor="@color/black" />
+            android:textColor="?attr/colorOnBackground" />
 
         <ImageView
             android:id="@+id/fpImage"
@@ -43,7 +43,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
             android:text="@string/fragment_payment_to_pay"
-            android:textColor="@color/black"
+            android:textColor="?attr/colorOnBackground"
             android:visibility="gone"/>
 
     </LinearLayout>

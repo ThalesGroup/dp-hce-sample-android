@@ -4,15 +4,14 @@
 
 package com.thalesgroup.tshpaysample.ui;
 
-import android.content.BroadcastReceiver;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.WindowManager;
 
-import androidx.localbroadcastmanager.content.LocalBroadcastManager;
-
+import com.gemalto.mfs.mwsdk.payment.PaymentBusinessManager;
 import com.thalesgroup.tshpaysample.R;
-import com.thalesgroup.tshpaysample.sdk.helpers.InternalNotificationsUtils;
+import com.thalesgroup.tshpaysample.sdk.SdkHelper;
+import com.thalesgroup.tshpaysample.sdk.helpers.HceHelper;
 import com.thalesgroup.tshpaysample.sdk.payment.TshPaymentAuthenticationRequestData;
 import com.thalesgroup.tshpaysample.sdk.payment.TshPaymentData;
 import com.thalesgroup.tshpaysample.sdk.payment.TshPaymentErrorData;
@@ -34,12 +33,12 @@ public class PaymentActivity extends BaseAppActivity {
     public static final String STATE_EXTRA_KEY = "STATE_EXTRA_KEY";
     public static final String PAYMENT_DATA_EXTRA_KEY = "PAYMENT_DATA_EXTRA_KEY";
 
-    private BroadcastReceiver mPaymentCountdownReceiver;
-
     private TshPaymentErrorData mErrorData;
     private TshPaymentData mSuccessData;
     private TshPaymentAuthenticationRequestData mAuthData;
     private TshPaymentData mSecondTapData;
+
+    private TshPaymentState lastHandledState = TshPaymentState.STATE_NONE;
 
     //endregion
 
@@ -52,20 +51,26 @@ public class PaymentActivity extends BaseAppActivity {
         super.onViewCreated();
 
 
-        // Register for payment activity.
-        mPaymentCountdownReceiver = InternalNotificationsUtils.registerForPaymentCountdown(this, seconds -> {
-            final AbstractFragment currentFragment = getCurrentFragment();
-            if (currentFragment != null) {
-                currentFragment.onPaymentCountdownChanged(seconds);
-            }
-        });
-
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED
                 | WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
                 | WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
                 | WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD);
 
         onNewIntent(getIntent());
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        HceHelper.handleForegroundPreference(this, HceHelper.LifeCycleHandler.ON_RESUME);
+    }
+
+    @Override
+    protected void onPause() {
+        HceHelper.handleForegroundPreference(this, HceHelper.LifeCycleHandler.ON_PAUSE);
+
+        super.onPause();
     }
 
     @Override
@@ -91,11 +96,11 @@ public class PaymentActivity extends BaseAppActivity {
                     showFragment(new FragmentPaymentAuthentication(), false);
                     break;
                 case STATE_ON_READY_TO_TAP:
-                    mSecondTapData = (TshPaymentData) paymentData;
+                    mSecondTapData = paymentData;
                     showFragment(new FragmentPaymentReady(), false);
                     break;
                 case STATE_ON_TRANSACTION_COMPLETED:
-                    mSuccessData = (TshPaymentData) paymentData;
+                    mSuccessData = paymentData;
                     showFragment(new FragmentPaymentSuccess(), false);
                     break;
                 case STATE_ON_ERROR:
@@ -106,6 +111,8 @@ public class PaymentActivity extends BaseAppActivity {
                     AppLoggerHelper.error(TAG, "Unknown transaction state: " + state.toString());
                     break;
             }
+
+            lastHandledState = state;
         }
     }
 
@@ -113,17 +120,26 @@ public class PaymentActivity extends BaseAppActivity {
     public void onDestroy() {
         super.onDestroy();
 
-        if (mPaymentCountdownReceiver != null) {
-            LocalBroadcastManager.getInstance(this).unregisterReceiver(mPaymentCountdownReceiver);
-            mPaymentCountdownReceiver = null;
-        }
-
         getWindow().clearFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED
                 | WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
                 | WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
                 | WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD);
     }
 
+
+    @Override
+    protected void onStop() {
+
+        AppLoggerHelper.debug(TAG, "onStop() at state = " + lastHandledState);
+
+        if (lastHandledState == TshPaymentState.STATE_ON_AUTHENTICATION_REQUIRED || lastHandledState == TshPaymentState.STATE_ON_READY_TO_TAP) {
+            PaymentBusinessManager.getPaymentBusinessService().deactivate();
+        }
+
+        SdkHelper.getInstance().getTshPaymentListener().restoreOriginalDefaultCard();
+
+        super.onStop();
+    }
 
     public TshPaymentAuthenticationRequestData getAuthData() {
         return mAuthData;

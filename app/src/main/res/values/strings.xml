@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">TSHPaySample</string>
+    <string name="app_name">NFC Wallet SDK Sample App</string>
 
     <!-- Common strings -->
     <string name="common_word_yes">Yes</string>
@@ -20,6 +20,7 @@
     <string name="sdk_idv_method_not_handled">IDV method is not handled.</string>
 
     <!-- Errors -->
+    <string name="sdk_incorrect_state">SDK state should never be null.</string>
     <string name="sdk_helper_already_init">SDK Helper is already initialized.</string>
     <string name="mg_error_sdk_already_init">MG SDK is already initialized.</string>
     <string name="push_provider_missing">Neither FCM nor HMS service are available.</string>
@@ -29,9 +30,9 @@
     <string name="push_received_transaction_history">Transaction history is not in scope of this sample application.</string>
 
     <!-- HCE Service -->
-    <string name="hce_service_label">Sample HCE Service Label</string>
-    <string name="hce_service_description">Sample HCE Service Description</string>
-    <string name="hce_aid_group_description">>Sample AID Group Description</string>
+    <string name="hce_service_label">HCE Service Label</string>
+    <string name="hce_service_description">HCE Service Description</string>
+    <string name="hce_aid_group_description">AID Group Description</string>
 
     <!-- View Card Front -->
     <string name="view_card_front_thales_logo_desc">Company Logo</string>
@@ -108,7 +109,7 @@
     <string name="enrollment_state_enrollment_code_required">Card enrollment asked for activation code.</string>
     <string name="enrollment_state_enrollment_started">Card enrollment started.</string>
     <string name="enrollment_state_enrollment_failed">Card enrollment failed.</string>
-    <string name="enrollment_state_enrollment_finished">Card enrollment finished, waiting for server to complete.</string>
+    <string name="enrollment_state_enrollment_finished">Card enrollment finished.</string>
 
     <string name="authentication_prompt_info_title">Payment Authentication</string>
     <string name="authentication_prompt_info_subtitle">Please, authorize the payment.</string>

@@ -25,7 +25,7 @@
             android:layout_marginBottom="0dp"
             android:text="Error"
             android:textSize="30sp"
-            android:textColor="@android:color/holo_red_dark" />
+            android:textColor="?attr/colorError" />
 
 
         <TextView
@@ -35,7 +35,7 @@
             android:layout_marginBottom="0dp"
             android:gravity="center"
             android:text="Transaction failed"
-            android:textColor="@color/black" />
+            android:textColor="?attr/colorOnBackground" />
 
     </LinearLayout>
 

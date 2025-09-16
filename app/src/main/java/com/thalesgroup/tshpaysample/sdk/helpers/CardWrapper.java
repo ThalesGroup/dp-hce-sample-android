@@ -8,6 +8,7 @@ import android.content.Context;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 
@@ -16,6 +17,7 @@ import androidx.annotation.Nullable;
 
 import com.gemalto.mfs.mwsdk.dcm.DigitalizedCard;
 import com.gemalto.mfs.mwsdk.dcm.DigitalizedCardManager;
+import com.gemalto.mfs.mwsdk.dcm.DigitalizedCardState;
 import com.gemalto.mfs.mwsdk.dcm.DigitalizedCardStatus;
 import com.gemalto.mfs.mwsdk.dcm.PaymentType;
 import com.gemalto.mfs.mwsdk.mobilegateway.MGCardEnrollmentService;
@@ -30,13 +32,13 @@ import com.gemalto.mfs.mwsdk.mobilegateway.exception.NoSuchCardException;
 import com.gemalto.mfs.mwsdk.mobilegateway.listener.MGCardLifecycleEventListener;
 import com.gemalto.mfs.mwsdk.payment.PaymentBusinessManager;
 import com.gemalto.mfs.mwsdk.payment.PaymentBusinessService;
-import com.gemalto.mfs.mwsdk.payment.PaymentServiceErrorCode;
-import com.gemalto.mfs.mwsdk.payment.engine.TransactionContext;
 import com.gemalto.mfs.mwsdk.provisioning.ProvisioningServiceManager;
+import com.gemalto.mfs.mwsdk.provisioning.listener.PushServiceListener;
+import com.gemalto.mfs.mwsdk.provisioning.model.ProvisioningServiceError;
+import com.gemalto.mfs.mwsdk.provisioning.model.ProvisioningServiceMessage;
 import com.gemalto.mfs.mwsdk.provisioning.sdkconfig.ProvisioningBusinessService;
-import com.gemalto.mfs.mwsdk.sdkconfig.SDKError;
 import com.thalesgroup.tshpaysample.sdk.SdkHelper;
-import com.thalesgroup.tshpaysample.sdk.payment.TshPaymentListener;
+import com.thalesgroup.tshpaysample.sdk.push.TshPush;
 import com.thalesgroup.tshpaysample.utlis.AppLoggerHelper;
 
 import java.io.ByteArrayOutputStream;
@@ -99,32 +101,32 @@ public class CardWrapper {
         mDigitalizedCard.getCardState(new AsyncHelperCardState(delegate));
     }
 
-    public void isDefault(@NonNull final CardActionDelegate delegate) {
-        mDigitalizedCard.isDefault(PaymentType.CONTACTLESS, new AsyncHandlerBool(new AsyncHandlerBool.Delegate() {
-            @Override
-            public void onSuccess(final Boolean value) {
-                delegate.onFinished(value, null);
-            }
-
-            @Override
-            public void onError(final String error) {
-                delegate.onFinished(false, error);
-                AppLoggerHelper.error(TAG, error);
-            }
-        }));
+    public boolean isActive(){
+        return mDigitalizedCardStatus != null && mDigitalizedCardStatus.getState() == DigitalizedCardState.ACTIVE;
     }
 
-    public void setDefault(@NonNull final CardActionDelegate delegate) {
+
+    // Avoids SDK async operation and checks directly the default cardId being held by TshPaymentListener
+    public boolean isDefault() {
+        return mCardId.equals(SdkHelper.getInstance().getTshPaymentListener().getDefaultCardId().getValue());
+    }
+
+    public void setDefault(@Nullable final CardActionDelegate delegate) {
         mDigitalizedCard.setDefault(PaymentType.CONTACTLESS, new AsyncHandlerVoid(new AsyncHandlerVoid.Delegate() {
             @Override
             public void onSuccess() {
-                delegate.onFinished(true, null);
+                SdkHelper.getInstance().getTshPaymentListener().onDefaultCardIdChanged(mDigitalizedCard.getTokenizedCardID());
+                if (delegate != null) {
+                    delegate.onFinished(true, null);
+                }
             }
 
             @Override
             public void onError(final String error) {
-                delegate.onFinished(false, error);
-                AppLoggerHelper.error(TAG, error);
+                if (delegate != null) {
+                    delegate.onFinished(false, error);
+                }
+                AppLoggerHelper.error(TAG, "setDefault() failed with error: " + error);
             }
         }));
     }
@@ -141,50 +143,25 @@ public class CardWrapper {
         // deactivate previous
         paymentBS.deactivate();
 
-        isDefault((isDefault, message) -> {
-
             // If selected card is not the default card, take note of the original default card,
-            // then set the selected card as the default, before proceeding with payment.
-            if (!isDefault) {
+            // then set the selected card as the default before proceeding with payment.
+            if (!isDefault()) {
 
-                final String defaultCardTokenID = DigitalizedCardManager
-                        .getDefault(PaymentType.CONTACTLESS, null).waitToComplete().getResult();
-
-                final CardWrapper originalDefault = new CardWrapper(defaultCardTokenID);
+                SdkHelper.getInstance().getTshPaymentListener().saveDefaultAsPreferredCard();
 
                 // Set the selected card as the new default temporarily.
-                setDefault((value, setSelectedDefaultMessage) -> {
-                    final TshPaymentListener paymentServiceListener = new TshPaymentListener() {
-
-                        @Override
-                        public void onTransactionCompleted(final TransactionContext ctx) {
-                            super.onTransactionCompleted(ctx);
-
-                            // After successful transaction, revert to the original default card, if necessary.
-                            originalDefault.setDefault((setOriginalDefaultValue, setOriginalDefaultMessage) -> {
-
-                            });
-                        }
-
-                        @Override
-                        public void onError(final SDKError<PaymentServiceErrorCode> sdkError) {
-                            super.onError(sdkError);
-
-                            // After failed transaction, revert to the original default card, if necessary.
-                            originalDefault.setDefault((setOriginalDefaultValue, setOriginalDefaultMessage) -> {
-
-                            });
-                        }
-                    };
-                    new Handler(Looper.getMainLooper()).post(() -> {
-                        paymentServiceListener.init(context);
-                        paymentBS.startAuthentication(paymentServiceListener, PaymentType.CONTACTLESS);
-                    });
+                setDefault((result, error) -> {
+                    // Do nothing in case of error. Error itself is already logged in the setDefault method
+                    if(result) {
+                        new Handler(Looper.getMainLooper()).post(() -> {
+                            paymentBS.startAuthentication(SdkHelper.getInstance().getTshPaymentListener(), PaymentType.CONTACTLESS);
+                        });
+                    }
                 });
             } else {
                 paymentBS.startAuthentication(SdkHelper.getInstance().getTshPaymentListener(), PaymentType.CONTACTLESS);
             }
-        });
+
     }
 
     public void getCardArt(@NonNull final Context context,
@@ -311,17 +288,80 @@ public class CardWrapper {
 
     }
 
-    private void replenishIfNeeded(boolean forcedReplenishment) {
+    private void replenishIfNeeded(final boolean forcedReplenishment) {
         if (mDigitalizedCardStatus != null && mDigitalizedCardStatus.needsReplenishment()) {
             final ProvisioningBusinessService businessService = ProvisioningServiceManager.getProvisioningBusinessService();
-            businessService.sendRequestForReplenishment(mDigitalizedCard.getTokenizedCardID(),
-                    SdkHelper.getInstance().getPush(), forcedReplenishment);
+
+            businessService.sendRequestForReplenishment(mDigitalizedCard.getTokenizedCardID(), new ReplenishmentListener(mDigitalizedCard, forcedReplenishment), forcedReplenishment);
+
         }
     }
 
     //endregion
 
     //region Private Helpers
+
+    /**
+     * By using this listener instead of the generic one in TshPush we will observe only the result
+     * of calling the ProvisioningBusinessService#sendRequestForReplenishment() API which uses
+     * same PushServiceListener API, but there is no push message processing involved.
+     */
+
+    private static class ReplenishmentListener implements PushServiceListener {
+
+        private static final String TAG = ReplenishmentListener.class.getSimpleName();
+        private final DigitalizedCard mDigitalizedCard;
+        private final boolean mWasForced;
+
+        public ReplenishmentListener(final DigitalizedCard digitalizedCard,
+                                     final boolean wasForced){
+            mDigitalizedCard = digitalizedCard;
+            mWasForced = wasForced;
+        }
+
+
+        @Override
+        public void onError(final ProvisioningServiceError provisioningServiceError) {
+            AppLoggerHelper.error(TAG, String.format("Failed to send replenishment request for card %s, wasForced=%b, ProvisioningServiceError: %s:%s",
+                    mDigitalizedCard.getTokenizedCardID(), mWasForced,
+                    provisioningServiceError.getSdkErrorCode(), provisioningServiceError.getErrorMessage())
+            );
+        }
+
+        @Override
+        public void onUnsupportedPushContent(final Bundle bundle) {
+
+            // This should never ever happen in the replenishment use case as we are not passing
+            // a push message, but just in case we log it
+            AppLoggerHelper.warn(TAG,  "Hit onUnsupportedPushContent() when attempting to replenish card " + mDigitalizedCard.getTokenizedCardID());
+        }
+
+        @Override
+        public void onServerMessage(final String tokenizedCardId,
+                                    final ProvisioningServiceMessage provisioningServiceMessage) {
+            // Should not go through here either, but let's log it in case we will
+            AppLoggerHelper.debug(TAG, String.format("onServerMessage(%s, %s) when replenishing card %s", tokenizedCardId, provisioningServiceMessage.getMsgCode(), mDigitalizedCard.getTokenizedCardID()));
+        }
+
+        @Override
+        public void onComplete() {
+
+            // For MC card it only means that we sent out the replenishment request and we need to wait
+            // a push message to come once the SUKs are prepared to be fetched from the backend.
+            AppLoggerHelper.info(TAG, String.format("Replenishment request for card %s (wasForced=%b) was COMPLETED", mDigitalizedCard.getTokenizedCardID(), mWasForced));
+
+            // For Visa card this means we are done and the card is ready with new LUK
+            // Thus we'll check if it is a Visa card and if so we'll reuse the push message handling code to notify the user
+            final String digitalCardId = DigitalizedCardManager.getDigitalCardId(mDigitalizedCard.getTokenizedCardID());
+
+            if(digitalCardId != null && digitalCardId.startsWith("HCESDKVTS")){
+                AppLoggerHelper.debug(TAG, "Emitting replenishment message for card: " + digitalCardId);
+                final TshPush tshPush = SdkHelper.getInstance().getPush();
+                tshPush.onVisaCardReplenished(mDigitalizedCard.getTokenizedCardID());
+                tshPush.onComplete();
+            }
+        }
+    }
 
     private static void writeToFile(final Context context,
                                     final String fileName,
@@ -332,7 +372,7 @@ public class CardWrapper {
             outputStream.close();
         } catch (final IOException exception) {
             // It's not important in same app. In worst case it will download card art again.
-            AppLoggerHelper.error(TAG, exception.getMessage());
+            AppLoggerHelper.error(TAG, "writeTofile(): " + exception.getMessage());
         }
 
     }
@@ -353,8 +393,8 @@ public class CardWrapper {
 
             return outputStream.toByteArray();
         } catch (final IOException exception) {
-            // It's not important in same app. In worst case it will download card art again.
-            AppLoggerHelper.error(TAG, exception.getMessage());
+            // It's not important in sample app. In worst case it will download card art again.
+            AppLoggerHelper.warn(TAG, "readFromFile(): " + exception.getMessage());
         }
 
         return new byte[0];

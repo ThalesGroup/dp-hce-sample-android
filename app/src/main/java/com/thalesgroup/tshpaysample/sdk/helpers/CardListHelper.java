@@ -12,13 +12,16 @@ import com.gemalto.mfs.mwsdk.cdcvm.BiometricsSupport;
 import com.gemalto.mfs.mwsdk.cdcvm.DeviceCVMEligibilityChecker;
 import com.gemalto.mfs.mwsdk.cdcvm.DeviceCVMEligibilityResult;
 import com.gemalto.mfs.mwsdk.cdcvm.DeviceKeyguardSupport;
+import com.gemalto.mfs.mwsdk.dcm.DigitalizedCard;
 import com.gemalto.mfs.mwsdk.dcm.DigitalizedCardErrorCodes;
 import com.gemalto.mfs.mwsdk.dcm.DigitalizedCardManager;
+import com.gemalto.mfs.mwsdk.dcm.DigitalizedCardStatus;
 import com.gemalto.mfs.mwsdk.dcm.cdcvm.DeviceCVMManager;
 import com.gemalto.mfs.mwsdk.exception.DeviceCVMException;
 import com.gemalto.mfs.mwsdk.payment.CHVerificationMethod;
 import com.gemalto.mfs.mwsdk.utils.async.AbstractAsyncHandler;
 import com.gemalto.mfs.mwsdk.utils.async.AsyncResult;
+import com.thalesgroup.tshpaysample.utlis.AppLoggerHelper;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -65,7 +68,13 @@ public final class CardListHelper extends AbstractAsyncHandler<String[]> {
         if (asyncResult.isSuccessful()) {
             final List<CardWrapper> retValue = new ArrayList<>();
             for (final String loopCard : asyncResult.getResult()) {
-                retValue.add(new CardWrapper(loopCard));
+                final DigitalizedCard digitalizedCard = DigitalizedCardManager.getDigitalizedCard(loopCard);
+                final AsyncResult<DigitalizedCardStatus> digitalizedCardStatusAsyncResult = digitalizedCard.getCardState(null).waitToComplete();
+                if(digitalizedCardStatusAsyncResult.isSuccessful()){
+                    retValue.add(new CardWrapper(digitalizedCard, digitalizedCardStatusAsyncResult.getResult()));
+                } else {
+                    AppLoggerHelper.error("CardListHelper", "Failed to load card status: " + digitalizedCardStatusAsyncResult.getErrorMessage());
+                }
             }
             mDelegate.onSuccess(retValue);
         } else {
@@ -94,7 +103,7 @@ public final class CardListHelper extends AbstractAsyncHandler<String[]> {
                     }
                 } else {
                     // Wallet pin is not in the scope!
-                    throw new RuntimeException("Device not suitable for this application.");
+                    throw new IllegalStateException("Device not suitable for this application.");
                 }
             } else {
                 // Any other states than CVM required should be reported do delegate.

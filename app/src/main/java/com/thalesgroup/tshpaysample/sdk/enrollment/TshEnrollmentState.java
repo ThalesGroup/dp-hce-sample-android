@@ -33,7 +33,7 @@ public enum TshEnrollmentState {
     ENROLLING_CODE_REQUIRED(R.string.enrollment_state_enrollment_code_required),
     ENROLLING_START(R.string.enrollment_state_enrollment_started),
     ENROLLING_ERROR(R.string.enrollment_state_enrollment_failed),
-    ENROLLING_FINISHED_WAITING_FOR_SERVER(R.string.enrollment_state_enrollment_finished);
+    ENROLLING_FINISHED(R.string.enrollment_state_enrollment_finished);
 
     /**
      * Return whether state represent some error.

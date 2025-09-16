@@ -5,6 +5,7 @@
 package com.thalesgroup.tshpaysample.ui.fragments;
 
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -36,7 +37,9 @@ public class FragmentPaymentError extends AbstractFragment {
         final TshPaymentErrorData data = getPaymentActivity().getErrorData();
         if (data != null) {
             messageTextView.setText(data.getMessage());
-            cardFrontView.loadCardDetails(new CardWrapper(data.getDigitalizedCardId()));
+            if(!TextUtils.isEmpty(data.getDigitalizedCardId())) {
+                cardFrontView.loadCardDetails(new CardWrapper(data.getDigitalizedCardId()));
+            }
         }
         return root;
     }

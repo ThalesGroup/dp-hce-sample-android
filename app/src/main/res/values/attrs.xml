@@ -6,5 +6,6 @@
         <attr format="string" name="exp"/>
         <attr format="color" name="gradientStart"/>
         <attr format="color" name="gradientEnd"/>
+        <attr format="color" name="colorSuccess"/>
     </declare-styleable>
 </resources>

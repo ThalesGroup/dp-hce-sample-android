@@ -13,144 +13,83 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
-import com.thalesgroup.tshpaysample.sdk.init.TshInitState;
-import com.thalesgroup.tshpaysample.sdk.payment.TshPaymentData;
-import com.thalesgroup.tshpaysample.sdk.payment.TshPaymentState;
-import com.thalesgroup.tshpaysample.sdk.push.TshPushType;
+import com.thalesgroup.tshpaysample.sdk.push.ServerMessageInfo;
+import com.thalesgroup.tshpaysample.utlis.AppLoggerHelper;
+
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.List;
 
 public final class InternalNotificationsUtils {
 
     //region Defines
 
-    private static final String ACTION_PAYMENT_COUNTDOWN = "com.thalesgroup.tshpaysample.paymentcountdown";
-    private static final String ACTION_INIT_STATE_UPDATE = "com.thalesgroup.tshpaysample.initstateupdate";
-    private static final String ACTION_PUSH_NOTIFICATION = "com.thalesgroup.tshpaysample.pushnotification";
-    private static final String ACTION_VALUE_REMAINING = "ValueRemaining";
-    private static final String ACTION_VALUE_STATE = "ValueState";
-    private static final String ACTION_VALUE_ERROR = "ValueError";
+    private static final String ACTION_PUSH_MSG_PROCESSED = "com.thalesgroup.tshpaysample.ACTION_PUSH_MSG_PROCESSED";
+    private static final String ACTION_PUSH_MSG_ERROR = "com.thalesgroup.tshpaysample.ACTION_PUSH_MSG_ERROR";
+
+    private static final String EXTRA_ERROR_MESSAGE = "com.thalesgroup.tshpaysample.EXTRA_ERROR_MESSAGE";
+    private static final String EXTRA_SERVER_MESSAGES = "com.thalesgroup.tshpaysample.EXTRA_SERVER_MESSAGES";
+    private static final String TAG = InternalNotificationsUtils.class.getSimpleName();
 
     //endregion
 
-    //region Public API - Init
-
-    public interface InitChangeHandler {
-        void onStateChanged(@NonNull final TshInitState state,
-                            @Nullable final String error);
-    }
-
-    public static BroadcastReceiver registerForInitChanges(@NonNull final Context context,
-                                                           @NonNull final InitChangeHandler handler) {
-        final BroadcastReceiver receiver = new BroadcastReceiver() {
-            @Override
-            public void onReceive(final Context context, final Intent intent) {
-                final TshInitState state = (TshInitState) intent.getSerializableExtra(ACTION_VALUE_STATE);
-                final String error = intent.getStringExtra(ACTION_VALUE_ERROR);
-
-                handler.onStateChanged(state, error);
-            }
-        };
-
-        // Handle enrollment state changes.
-        final IntentFilter filter = new IntentFilter();
-        filter.addAction(ACTION_INIT_STATE_UPDATE);
-        LocalBroadcastManager.getInstance(context).registerReceiver(receiver, filter);
-
-        return receiver;
-    }
-
-    public static void updateInitState(@NonNull final Context context,
-                                       @NonNull final TshInitState state,
-                                       @Nullable final String error) {
-        final Intent sdkState = new Intent(ACTION_INIT_STATE_UPDATE);
-        sdkState.putExtra(ACTION_VALUE_STATE, state);
-        if (error != null) {
-            sdkState.putExtra(ACTION_VALUE_ERROR, error);
-        }
-        LocalBroadcastManager.getInstance(context).sendBroadcast(sdkState);
-    }
-
-    //endregion
-
-    //region Public API - Payment
-
-    public interface PaymentStateChangeHandler {
-        void onStateChanged(@NonNull final TshPaymentState state,
-                            @Nullable final TshPaymentData data);
-
-    }
-
-    public interface PaymentCountdownChangeHandler {
-        void onCountdownChanged(final int remainingSec);
-    }
-
-
-
-    public static BroadcastReceiver registerForPaymentCountdown(@NonNull final Context context,
-                                                                @NonNull final PaymentCountdownChangeHandler handler) {
-        final BroadcastReceiver receiver = new BroadcastReceiver() {
-            @Override
-            public void onReceive(final Context context, final Intent intent) {
-                final int remainingSec = intent.getIntExtra(ACTION_VALUE_REMAINING, 0);
-
-                handler.onCountdownChanged(remainingSec);
-            }
-        };
-
-        // Handle enrollment state changes.
-        final IntentFilter filter = new IntentFilter();
-        filter.addAction(ACTION_PAYMENT_COUNTDOWN);
-        LocalBroadcastManager.getInstance(context).registerReceiver(receiver, filter);
-
-        return receiver;
-    }
-
-
-
-    public static void updatePaymentCountdown(@NonNull final Context context,
-                                              final int remainingSec) {
-        final Intent paymentState = new Intent(ACTION_PAYMENT_COUNTDOWN);
-        paymentState.putExtra(ACTION_VALUE_REMAINING, remainingSec);
-
-        LocalBroadcastManager.getInstance(context).sendBroadcast(paymentState);
-    }
-    //endregion
 
     //region Public API - Push Notifications
 
-    public interface PushNotificationHandler {
-        void onPushReceived(@NonNull final TshPushType type,
-                            @Nullable final String error);
+    public interface PushMsgResultHandler {
+        void onPushProcessed(@NonNull final List<ServerMessageInfo> serverMessageInfoList,
+                             @Nullable final String error);
     }
 
-    public static BroadcastReceiver registerForPushNotifications(@NonNull final Context context,
-                                                                 @NonNull final PushNotificationHandler handler) {
+    public static BroadcastReceiver registerForPushMsgProcessingResult(@NonNull final Context context,
+                                                                       @NonNull final PushMsgResultHandler handler) {
         final BroadcastReceiver receiver = new BroadcastReceiver() {
             @Override
             public void onReceive(final Context context, final Intent intent) {
-                final TshPushType type = (TshPushType) intent.getSerializableExtra(ACTION_VALUE_STATE);
-                final String error = intent.getStringExtra(ACTION_VALUE_ERROR);
 
-                handler.onPushReceived(type, error);
+                if(intent == null) {
+                    throw new IllegalArgumentException("Intent cannot be null");
+                }
+
+                if (intent.hasExtra(EXTRA_ERROR_MESSAGE)) {
+                    final String error = intent.getStringExtra(EXTRA_ERROR_MESSAGE);
+                    handler.onPushProcessed(null, error);
+                } else if (intent.hasExtra(EXTRA_SERVER_MESSAGES)) {
+                    final Serializable retrievedExtra = intent.getSerializableExtra(EXTRA_SERVER_MESSAGES);
+                    try{
+                        final ArrayList<ServerMessageInfo> serverMessageInfos = (ArrayList<ServerMessageInfo>) retrievedExtra;
+                        handler.onPushProcessed(serverMessageInfos, null);
+
+                    } catch (final Exception exception){
+                        AppLoggerHelper.error(TAG, "Failed to retrieve server messages from intent: " + exception.getMessage());
+                    }
+                }
+
             }
         };
 
         // Handle enrollment state changes.
         final IntentFilter filter = new IntentFilter();
-        filter.addAction(ACTION_PUSH_NOTIFICATION);
+        filter.addAction(ACTION_PUSH_MSG_PROCESSED);
+        filter.addAction(ACTION_PUSH_MSG_ERROR);
         LocalBroadcastManager.getInstance(context).registerReceiver(receiver, filter);
 
         return receiver;
     }
 
-    public static void onPushReceived(@NonNull final Context context,
-                                      @NonNull final TshPushType type,
-                                      @Nullable final String error) {
-        final Intent enrollmentState = new Intent(ACTION_PUSH_NOTIFICATION);
-        enrollmentState.putExtra(ACTION_VALUE_STATE, type);
-        if (error != null) {
-            enrollmentState.putExtra(ACTION_VALUE_ERROR, error);
-        }
-        LocalBroadcastManager.getInstance(context).sendBroadcast(enrollmentState);
+
+    public static void onPushMsgProcessingFailed(@NonNull final Context context, @NonNull final String error) {
+        final Intent intent = new Intent(ACTION_PUSH_MSG_ERROR);
+        intent.putExtra(EXTRA_ERROR_MESSAGE, error);
+
+        LocalBroadcastManager.getInstance(context).sendBroadcast(intent);
+    }
+
+    public static void onPushProcessingCompleted(@NonNull final Context context, @NonNull final List<ServerMessageInfo> messages) {
+        final Intent intent = new Intent(ACTION_PUSH_MSG_PROCESSED);
+        intent.putExtra(EXTRA_SERVER_MESSAGES, new ArrayList<>(messages));
+
+        LocalBroadcastManager.getInstance(context).sendBroadcast(intent);
     }
 
     //endregion

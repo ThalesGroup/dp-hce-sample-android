@@ -1,10 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="test_data_green_pan">TO_BE_CONFIGURED</string>
-    <string name="test_data_yellow_pan">TO_BE_CONFIGURED</string>
-    <string name="test_data_exp">TO_BE_CONFIGURED</string>
-    <string name="test_data_cvv">TO_BE_CONFIGURED</string>
-    
-    <string name="test_data_public_key">TO_BE_CONFIGURED</string>
-    <string name="test_data_subject_identifier">TO_BE_CONFIGURED</string>
+    <string name="test_data_pan">5186011512340003</string>
+    <string name="test_data_exp">1225</string>
+    <string name="test_data_cvv">123</string>
+
+    <string name="test_data_subject_identifier">806936C2F51178E6346256CBD495D5C6797B224D</string>
+    <string name="test_data_public_key">30820122300d06092a864886f70d01010105000382010f003082010a0282010100c56e1e17bda05f906b0f3a6c61464c12464102c2c5e70fce5aa6a0d382e0b0bc83d3d91330b55469c7f6d83dda8d4649a2290c144aea781ea1b3fed5658cd57e49b7f2a87eabfb7ff89f0aa49cb16d1fca3409e48215e23510d5112aae21fe2f2e9d4c28bde41c6ff7fcb92ba90c1c3d2ddca19e2d91db54f5c8b4b0d5747c995b9603fb4d0f8db204f1a86d7732065c631275df13bc5fb949daf4c3e0dbdc79f9ae6bf04bf3f981d1792e1311ae3b244e1983be9b53969cbc2753782d081f8e2f4864e46c4555f4658843a54e7c6589f9c9d4b961db767ed8f5c0273fc18aac13f3f341262378423c2d7c9360ba1d39aea02688583516cc864484d17bf6a4430203010001</string>
 </resources>

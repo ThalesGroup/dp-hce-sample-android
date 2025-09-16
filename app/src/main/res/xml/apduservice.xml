@@ -6,6 +6,10 @@ android:requireDeviceUnlock="false">
 <aid-group
     android:category="payment"
     android:description="@string/hce_aid_group_description">
+
+    <!-- Proximity Payment Service Environment (PPSE) -->
+    <aid-filter android:name="325041592E5359532E4444463031" />
+
     <!--VISA Electron-->
     <aid-filter android:name="A0000000032010" />
     <!--Standard MasterCard-->
@@ -16,7 +20,6 @@ android:requireDeviceUnlock="false">
     <aid-filter android:name="A0000000043060" />
     <aid-filter android:name="A0000000042203"/>
     <aid-filter android:name="A0000000041010D056"/>
-    <!--Visa payWave for Mobile-->
-    <aid-filter android:name="325041592E5359532E4444463031" />
+
 </aid-group>
 </host-apdu-service>

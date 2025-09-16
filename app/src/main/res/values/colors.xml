@@ -19,4 +19,7 @@
     <color name="tab_dot_selected_color">#54B8EC</color>
     <color name="progress_background">#25000000</color>
 
+    <color name="colorSuccess">#388E3C</color> <!-- Material Green 700 -->
+
+
 </resources>

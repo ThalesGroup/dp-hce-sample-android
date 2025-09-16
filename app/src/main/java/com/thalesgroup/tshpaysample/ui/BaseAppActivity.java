@@ -16,6 +16,7 @@ import androidx.fragment.app.FragmentTransaction;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 import com.thalesgroup.tshpaysample.R;
+import com.thalesgroup.tshpaysample.sdk.SdkHelper;
 import com.thalesgroup.tshpaysample.sdk.helpers.InternalNotificationsUtils;
 import com.thalesgroup.tshpaysample.ui.fragments.AbstractFragment;
 import com.thalesgroup.tshpaysample.ui.views.ViewProgress;
@@ -29,7 +30,6 @@ public class BaseAppActivity extends AppCompatActivity {
     private ConstraintLayout mProgressViewContainer;
     private ViewProgress mProgressView;
 
-    private BroadcastReceiver mInitChangesReceiver;
     private BroadcastReceiver mPushReceiver;
 
     protected void onViewCreated() {
@@ -37,20 +37,17 @@ public class BaseAppActivity extends AppCompatActivity {
         mProgressViewContainer = findViewById(R.id.activity_main_view_progress_container);
         mProgressView = findViewById(R.id.activity_main_view_progress);
 
-        // Register for SDK state changes.
-        mInitChangesReceiver = InternalNotificationsUtils.registerForInitChanges(this, (state, error) -> {
-            final AbstractFragment currentFragment = getCurrentFragment();
-            if (currentFragment != null) {
-                currentFragment.onInitStateChanged(state, error);
-            }
-            displayMessageToast(error);
+        // Observe for any init errors.
+        SdkHelper.getInstance().getInit().getSdkInitState().observe(this, tshInitState -> {
+            // Error might be null, but method will display only if there is some.
+            displayMessageToast(tshInitState.getError());
         });
 
         // Register for incoming push notifications.
-        mPushReceiver = InternalNotificationsUtils.registerForPushNotifications(this, (type, error) -> {
+        mPushReceiver = InternalNotificationsUtils.registerForPushMsgProcessingResult(this, (serverMessageInfoList, error) -> {
             final AbstractFragment currentFragment = getCurrentFragment();
             if (currentFragment != null) {
-                currentFragment.onPushReceived(type, error);
+                currentFragment.onPushMsgProcessingResult(serverMessageInfoList, error);
             }
             displayMessageToast(error);
         });
@@ -159,11 +156,6 @@ public class BaseAppActivity extends AppCompatActivity {
         super.onDestroy();
 
         // Make sure we will clean up all receivers.
-        if (mInitChangesReceiver != null) {
-            LocalBroadcastManager.getInstance(this).unregisterReceiver(mInitChangesReceiver);
-            mInitChangesReceiver = null;
-        }
-
         if (mPushReceiver != null) {
             LocalBroadcastManager.getInstance(this).unregisterReceiver(mPushReceiver);
             mPushReceiver = null;

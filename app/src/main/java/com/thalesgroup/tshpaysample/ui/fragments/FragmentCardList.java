@@ -9,22 +9,26 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.viewpager2.widget.ViewPager2;
 
 import com.google.android.material.tabs.TabLayoutMediator;
 import com.thalesgroup.tshpaysample.R;
 import com.thalesgroup.tshpaysample.sdk.SdkHelper;
-import com.thalesgroup.tshpaysample.sdk.push.TshPushType;
+import com.thalesgroup.tshpaysample.sdk.push.ServerMessageInfo;
 import com.thalesgroup.tshpaysample.ui.model.CardListAdapter;
+import com.thalesgroup.tshpaysample.utlis.AppLoggerHelper;
 import com.thalesgroup.tshpaysample.utlis.ZoomOutPageTransformer;
+
+import java.util.List;
 
 public class FragmentCardList extends AbstractFragment {
 
     //region Defines
 
     private CardListAdapter mCardListAdapter;
+
+    private static final String TAG = FragmentCardList.class.getSimpleName();
 
     //endregion
 
@@ -61,13 +65,23 @@ public class FragmentCardList extends AbstractFragment {
 
         }).attach();
 
+
+        SdkHelper.getInstance().getTshPaymentListener().getDefaultCardId().observe(getViewLifecycleOwner(), cardId -> {
+            AppLoggerHelper.debug(TAG, "Default cardId has changed to: " + (cardId == null ? "null" : cardId) );
+            // propagate it to the CardListAdapter
+            onReloadData();
+        });
+
         return retValue;
     }
 
     @Override
-    public void onPushReceived(@NonNull final TshPushType state,
-                               @Nullable final String error) {
-        super.onPushReceived(state, error);
+    public void onPushMsgProcessingResult(@Nullable final List<ServerMessageInfo> serverMessageInfoList,
+                                          @Nullable final String error) {
+        super.onPushMsgProcessingResult(serverMessageInfoList, error);
+
+        // Here we received push message processing result and we can react to it.
+        // We will only reload all data here, but we do some additional checks in PaySampleApp#onPushMsgProcessingResult
 
         onReloadData();
     }
@@ -75,17 +89,20 @@ public class FragmentCardList extends AbstractFragment {
     @Override
     public void onReloadData() {
         // Real application might react only to specific states to safe performance.
-        // It's not relevant in sample.
+        AppLoggerHelper.info(TAG, "Reloading complete card list");
         mCardListAdapter.reloadCardList();
     }
 
-    @Override
-    public void onResume() {
-        super.onResume();
+    // Do not need to override onResume just to reload card list,
+    // because we observe the default cardId changes and we will received the first value
+    // as soon as the fragment is visible and we will reload from there.
 
-        // UI is not handling notification in background.
-        mCardListAdapter.reloadCardList();
-    }
+//    @Override
+//    public void onResume() {
+//        super.onResume();
+//
+//        onReloadData();
+//    }
 
     //endregion
 

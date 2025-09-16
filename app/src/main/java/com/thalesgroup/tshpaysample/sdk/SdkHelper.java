@@ -8,7 +8,6 @@ import android.content.Context;
 
 import androidx.annotation.NonNull;
 
-import com.gemalto.mfs.mwsdk.payment.engine.ContactlessPaymentServiceListener;
 import com.thalesgroup.tshpaysample.R;
 import com.thalesgroup.tshpaysample.sdk.enrollment.TshEnrollment;
 import com.thalesgroup.tshpaysample.sdk.init.TshInit;
@@ -42,26 +41,7 @@ public final class SdkHelper {
         return INSTANCE;
     }
 
-
-    public void init(final @NonNull Context context){
-        init(context, false);
-    }
-
-    public void initFromAppOnCreate(final @NonNull Context context){
-        init(context, true);
-    }
-
-    /**
-     * Initializes the SDK
-     * @param context
-     * @param fromAppOnCreate    Indicates if the request is coming from App#onCreate method.
-     *                           We track that because for TWO_TAP_ALWAYS we want to postpone the
-     *                           init to {@link ContactlessPaymentServiceListener#onFirstTapCompleted()}
-     *                           as per the developer portal doc:
-     *                           https://developer.dbp.thalescloud.io/docs/tsh-hce-android/2b6d6cbf0fc6e-payment-fast-path-pfp
-     *
-     */
-    private void init(final @NonNull Context context, final boolean fromAppOnCreate) {
+    public void init(@NonNull final Context context) {
         // Do not allow multiple initializations.
         if (mInited) {
             AppLoggerHelper.debug(TAG, context.getString(R.string.sdk_helper_already_init));
@@ -75,7 +55,7 @@ public final class SdkHelper {
         mTshPush.init(context);
 
         // Initialize TSH SDK.
-        mTshInit.init(context, fromAppOnCreate);
+        mTshInit.init(context);
 
         // Initialize TSH Enrollment helper.
         mTshEnrollment.init(context);
