@@ -1,4 +1,4 @@
-# Android Sample Application for Thales DIS TSH Pay SDK
+# Thales NFC Wallet SDK Android Sample Application
 
 Please see our developer portal for further details about the SDK integration:
 * [Introduction](https://developer.dbp.thalescloud.io/docs/tsh-hce-android/)
