@@ -22,7 +22,7 @@ public class TshPaymentHceService extends AsyncHCEService {
         PaymentSettings.setTransactionRetryLimit(3);
 
         // Set the timeout to signal transaction error after 3 seconds to allow POS performing retries
-        PaymentSettings.setTransactionRetryTimeout(3000);
+        PaymentSettings.setTransactionRetryTimeout(1500);
 
         // Suspend APDU processing for up to 5s when pending for user authentication
         PaymentSettings.setApduSuspendTimeout(5000);

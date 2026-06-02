@@ -30,9 +30,9 @@
     <string name="push_received_transaction_history">Transaction history is not in scope of this sample application.</string>
 
     <!-- HCE Service -->
-    <string name="hce_service_label">HCE Service Label</string>
-    <string name="hce_service_description">HCE Service Description</string>
-    <string name="hce_aid_group_description">AID Group Description</string>
+    <string name="hce_service_label">NFC Wallet SDK HCE Service</string>
+    <string name="hce_service_description">NFC Wallet SDK HCE Service Description</string>
+    <string name="hce_aid_group_description">NFC Wallet SDK AID Group Description</string>
 
     <!-- View Card Front -->
     <string name="view_card_front_thales_logo_desc">Company Logo</string>
@@ -53,8 +53,8 @@
     <string name="fragment_card_page_button_payment">Payment</string>
     <string name="fragment_card_page_unknown_card_state">Unknown card state</string>
     <string name="fragment_card_page_unhandled_card_state">Unhandled card state</string>
-    <string name="fragment_card_page_action_registered">Action was registered. Some of them are asynchronous. It can take some time to process.</string>
-    <string name="fragment_card_page_action_failed">Selected action failed with error.</string>
+    <string name="fragment_card_page_action_registered">The request was submitted OK. The card state will update shortly.</string>
+    <string name="fragment_card_page_action_failed">The selected action has failed.</string>
 
     <!-- Fragment Splash -->
     <string name="fragment_splash_caption">@string/app_name</string>
@@ -117,5 +117,25 @@
     <string name="authentication_prompt_info_description_wo_amount">You are pre-authenticating \nANY amount</string>
     <string name="authentication_prompt_info_negative_button_text">Cancel</string>
     <string name="authentication_prompt_message_hint_auth_failed">Please, re-try with a different authentication method.</string>
+    <string name="prerequisites_title">Setting up your device</string>
+    <string name="prerequisites_all_ok">You are all set!</string>
+    <string name="prerequisites_almost_there">Almost there!</string>
+    <string name="prerequisites_continue">Let\'s enroll a card</string>
+
+    <string name="fragment_card_enrollment_test_cards_label">Select Test Card (Optional)</string>
+    <string name="fragment_card_enrollment_test_cards_prompt">▼</string>
+
+    <string name="fragment_card_page_actions_title">Actions</string>
+
+    <string name="fragment_card_list_add_card">Add Card</string>
+
+    <string name="view_card_front_default_badge_desc">Toggle default card</string>
+
+    <string name="payment_successful">Payment Successful</string>
+    <string name="payment_failed">Payment Failed</string>
+    <string name="payment_done">Done</string>
+    <string name="payment_retry">Try Again</string>
+    <string name="payment_timer_exceeded">Payment session timed out. Please try again.</string>
+    <string name="tap_the_pos_to_pay">Now tap the POS to pay</string>
 
 </resources>

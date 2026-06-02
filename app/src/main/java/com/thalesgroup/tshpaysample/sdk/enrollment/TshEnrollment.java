@@ -37,6 +37,7 @@ import com.gemalto.mfs.mwsdk.utils.chcodeverifier.SecureCodeInputer;
 import com.thalesgroup.tshpaysample.R;
 import com.thalesgroup.tshpaysample.sdk.SdkHelper;
 import com.thalesgroup.tshpaysample.sdk.init.TshInit;
+import com.thalesgroup.tshpaysample.sdk.push.TshPush;
 import com.thalesgroup.tshpaysample.utlis.AppLoggerHelper;
 
 import java.util.Arrays;
@@ -172,37 +173,47 @@ public class TshEnrollment implements CardEligibilityListener, MGDigitizationLis
     public void onCPSActivationCodeAcquired(final String identifier, final byte[] code) {
         updateState(TshEnrollmentState.DIGITIZATION_ACTIVATION_CODE_AQUIRED);
 
-        SdkHelper.getInstance().getPush().getPushToken(token -> {
-            final EnrollingBusinessService enrollingService = ProvisioningServiceManager.getEnrollingBusinessService();
-            final ProvisioningBusinessService provisioningBusinessService = ProvisioningServiceManager.getProvisioningBusinessService();
+        SdkHelper.getInstance().getPush().getPushToken(new TshPush.PushTokenListener() {
+           @Override
+           public void onComplete(String token) {
+               final EnrollingBusinessService enrollingService = ProvisioningServiceManager.getEnrollingBusinessService();
+               final ProvisioningBusinessService provisioningBusinessService = ProvisioningServiceManager.getProvisioningBusinessService();
 
-            mActivationCode = new byte[code.length];
-            System.arraycopy(code, 0, mActivationCode, 0, code.length);
+               mActivationCode = new byte[code.length];
+               System.arraycopy(code, 0, mActivationCode, 0, code.length);
 
-            //WalletID of MG SDK is userID of CPS SDK Enrollment process
-            final String userId = MobileGatewayManager.INSTANCE.getCardEnrollmentService().getWalletId();
+               //WalletID of MG SDK is userID of CPS SDK Enrollment process
+               final String userId = MobileGatewayManager.INSTANCE.getCardEnrollmentService().getWalletId();
 
-            final EnrollmentStatus status = enrollingService.isEnrolled();
-            switch (status) {
-                case ENROLLMENT_NEEDED:
-                    updateState(TshEnrollmentState.DIGITIZATION_ACTIVATION_CODE_AQUIRED_ENROLLMENT_NEEDED);
+               final EnrollmentStatus status = enrollingService.isEnrolled();
+               switch (status) {
+                   case ENROLLMENT_NEEDED:
+                       updateState(TshEnrollmentState.DIGITIZATION_ACTIVATION_CODE_AQUIRED_ENROLLMENT_NEEDED);
 
-                    //First card, first try
-                    enrollingService.enroll(userId, token, "en", this);
-                    break;
-                case ENROLLMENT_IN_PROGRESS:
-                    //First card, second try
-                    enrollingService.continueEnrollment("en", this);
-                    break;
-                case ENROLLMENT_COMPLETE:
-                    //Second card
-                    provisioningBusinessService.sendActivationCode(this);
-                    break;
-                default:
-                    AppLoggerHelper.error(TAG, "Unhandled status: " + status);
-                    break;
-            }
-        });
+                       //First card, first try
+                       enrollingService.enroll(userId, token, "en", TshEnrollment.this);
+                       break;
+                   case ENROLLMENT_IN_PROGRESS:
+                       //First card, second try
+                       enrollingService.continueEnrollment("en", TshEnrollment.this);
+                       break;
+                   case ENROLLMENT_COMPLETE:
+                       //Second card
+                       provisioningBusinessService.sendActivationCode(TshEnrollment.this);
+                       break;
+                   default:
+                       AppLoggerHelper.error(TAG, "Unhandled status: " + status);
+                       break;
+               }
+           }
+
+           @Override
+           public void onError(@NonNull Exception e) {
+                updateState(TshEnrollmentState.DIGITIZATION_ACTIVATION_CODE_AQUIRED, e.getMessage());
+           }
+       });
+
+
     }
 
     @Override
@@ -218,15 +229,18 @@ public class TshEnrollment implements CardEligibilityListener, MGDigitizationLis
     }
 
     @Override
-    public void onComplete(final String message) {
+    public void onComplete(final String digitalCardId) {
+        AppLoggerHelper.debug(TAG, "MGDigitizationListener#onComplete() digitalCardId = " + digitalCardId);
+
         updateState(TshEnrollmentState.DIGITIZATION_FINISHED);
     }
 
     @Override
-    public void onError(final String message,
-                        final MobileGatewayError mobileGatewayError) {
+    public void onError(final String digitalCardId,
+                        final MobileGatewayError mgError) {
         // Notify logic layer and update any possible UI.
-        updateState(TshEnrollmentState.DIGITIZATION_ERROR, mobileGatewayError.getMessage());
+        AppLoggerHelper.error(TAG, String.format("MGDigitizationListener#onError(): %s:%s", mgError.getSDKErrorCode(), mgError.getMessage()));
+        updateState(TshEnrollmentState.DIGITIZATION_ERROR, mgError.getMessage());
     }
 
     //endregion

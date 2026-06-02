@@ -98,11 +98,26 @@ public class CardWrapper {
     }
 
     public void getDigitalizedCardState(final AsyncHelperCardState.Delegate delegate) {
-        mDigitalizedCard.getCardState(new AsyncHelperCardState(delegate));
+        mDigitalizedCard.getCardState(new AsyncHelperCardState(new AsyncHelperCardState.Delegate() {
+            @Override
+            public void onSuccess(final DigitalizedCardStatus value) {
+                mDigitalizedCardStatus = value;
+                delegate.onSuccess(value);
+            }
+
+            @Override
+            public void onError(final String error) {
+                delegate.onError(error);
+            }
+        }));
     }
 
     public boolean isActive(){
         return mDigitalizedCardStatus != null && mDigitalizedCardStatus.getState() == DigitalizedCardState.ACTIVE;
+    }
+
+    public DigitalizedCardStatus getCachedCardStatus() {
+        return mDigitalizedCardStatus;
     }
 
 
@@ -147,7 +162,7 @@ public class CardWrapper {
             // then set the selected card as the default before proceeding with payment.
             if (!isDefault()) {
 
-                SdkHelper.getInstance().getTshPaymentListener().saveDefaultAsPreferredCard();
+                SdkHelper.getInstance().getTshPaymentListener().saveOriginalCardId();
 
                 // Set the selected card as the new default temporarily.
                 setDefault((result, error) -> {

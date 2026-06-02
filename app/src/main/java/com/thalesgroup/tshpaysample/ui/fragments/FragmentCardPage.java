@@ -11,7 +11,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.IdRes;
@@ -37,9 +36,7 @@ public class FragmentCardPage extends Fragment {
 
     private static final String TAG = FragmentCardPage.class.getSimpleName();
 
-    private Button mButtonActivate, mButtonSuspend, mButtonSetDefault, mButtonEnroll, mButtonPayment;
-
-    private TextView mTextIsDefault, mTextStatus;
+    private Button mButtonResume, mButtonSuspend, mButtonActivate, mButtonPayment;
 
     private ViewCardFront mCardVisual;
     private CardWrapper mCardWrapper;
@@ -71,16 +68,12 @@ public class FragmentCardPage extends Fragment {
 
         // Top card visual with basic information
         mCardVisual = retValue.findViewById(R.id.fragment_card_page_card_visual);
-
-        // Additional card information
-        mTextIsDefault = retValue.findViewById(R.id.fragment_card_page_is_default);
-        mTextStatus = retValue.findViewById(R.id.fragment_card_page_text_status);
+        mCardVisual.setOnDefaultBadgeClickListener(this::onDefaultBadgeClicked);
 
         // Card actions
-        mButtonActivate = initButton(retValue, R.id.fragment_card_page_button_resume, this::onButtonPressedResume);
+        mButtonResume = initButton(retValue, R.id.fragment_card_page_button_resume, this::onButtonPressedResume);
         mButtonSuspend = initButton(retValue, R.id.fragment_card_page_button_suspend, this::onButtonPressedSuspend);
-        mButtonSetDefault = initButton(retValue, R.id.fragment_card_page_button_set_default, this::onButtonPressedSetDefault);
-        mButtonEnroll = initButton(retValue, R.id.fragment_card_page_button_activate, this::onButtonPressedActivate);
+        mButtonActivate = initButton(retValue, R.id.fragment_card_page_button_activate, this::onButtonPressedActivate);
         mButtonPayment = initButton(retValue, R.id.fragment_card_page_button_payment, this::onButtonPressedPayment);
         initButton(retValue, R.id.fragment_card_page_button_delete, this::onButtonPressedDelete);
 
@@ -96,6 +89,13 @@ public class FragmentCardPage extends Fragment {
         if (arguments != null && arguments.containsKey(ARGUMENT_CARD_ID)) {
             mCardWrapper = new CardWrapper(arguments.getString(ARGUMENT_CARD_ID));
             updateState();
+
+            // Observe default card changes to update the star icon in real-time
+            SdkHelper.getInstance().getTshPaymentListener().getDefaultCardId().observe(getViewLifecycleOwner(), cardId -> {
+                if (mCardWrapper != null) {
+                    mCardVisual.loadCardDetails(mCardWrapper);
+                }
+            });
         }
     }
 
@@ -112,34 +112,35 @@ public class FragmentCardPage extends Fragment {
         // Load card graphics and basic information like PAN, EXP etc...
         mCardVisual.loadCardDetails(mCardWrapper);
 
-        // Load additional card info.
-        mTextIsDefault.setText(mCardWrapper.isDefault() ? R.string.common_word_yes : R.string.common_word_no);
 
         // First disable all buttons except delete. Individual actions will be enabled based on state.
-        mButtonActivate.setEnabled(false);
-        mButtonSuspend.setEnabled(false);
-        mButtonSetDefault.setEnabled(false);
-        mButtonEnroll.setEnabled(false);
+        mButtonResume.setVisibility(View.GONE);
+        mButtonSuspend.setVisibility(View.GONE);
+        mButtonActivate.setVisibility(View.GONE);
         mButtonPayment.setEnabled(false);
 
         // Get current card state so we can enable proper actions.
         mCardWrapper.getDigitalizedCardState(new AsyncHelperCardState.Delegate() {
             @Override
             public void onSuccess(final DigitalizedCardStatus value) {
-                mTextStatus.setText(value.getState().name());
+                // Update card visual part again, because we have new status (active / suspended etc...)
+                mCardVisual.loadCardDetails(mCardWrapper);
 
                 switch (value.getState()) {
                     case ACTIVE:
+                        mButtonSuspend.setVisibility(View.VISIBLE);
                         mButtonSuspend.setEnabled(true);
                         mButtonPayment.setEnabled(true);
-                        mButtonSetDefault.setEnabled(!mCardWrapper.isDefault());
                         break;
                     case SUSPENDED:
-                        final PendingCardActivation pendingActiovation = mCardWrapper.getPendingActivation();
-                        if (pendingActiovation != null) {
-                            mButtonEnroll.setEnabled(true);
-                        } else {
+                        final PendingCardActivation pendingActivation = mCardWrapper.getPendingActivation();
+                        if (pendingActivation != null) {
+                            mButtonActivate.setVisibility(View.VISIBLE);
                             mButtonActivate.setEnabled(true);
+                            mButtonPayment.setEnabled(false);
+                        } else {
+                            mButtonResume.setVisibility(View.VISIBLE);
+                            mButtonResume.setEnabled(true);
                         }
                         break;
                     case RETIRED:
@@ -158,6 +159,9 @@ public class FragmentCardPage extends Fragment {
 
             @Override
             public void onError(final String error) {
+                // Something must have been terribly wrong if we reached this
+                AppLoggerHelper.error(TAG, "Failed to load digital card state: " + error);
+
                 if (getContext() != null) {
                     Toast.makeText(getContext(), error, Toast.LENGTH_LONG).show();
                 }
@@ -191,16 +195,16 @@ public class FragmentCardPage extends Fragment {
         mCardWrapper.suspendCard(mCardOperationDelegate);
     }
 
-    private void onButtonPressedSetDefault(final View sender) {
-        mCardWrapper.setDefault(mCardOperationDelegate);
-//        mCardWrapper.setDefault((value, message) -> {
-//            final CardListActivity cardListActivity = getMainActivity();
-//            if (value && cardListActivity != null) {
-//                cardListActivity.reloadFragmentData();
-//            } else if (cardListActivity != null) {
-//                mCardOperationDelegate.onFinished(value, message);
-//            }
-//        });
+    private void onDefaultBadgeClicked() {
+
+        mCardWrapper.setDefault((value, message) -> {
+
+            if (!value) {
+                new Handler(Looper.getMainLooper()).post(() -> Toast.makeText(getContext(), String.format("Setting the card as default failed: %s", message), Toast.LENGTH_LONG).show());
+            }
+            // Else: don't need to handle the success case here.
+            // The UI update should be propagated through live data mechanism.
+        });
     }
 
     private void onButtonPressedDelete(final View sender) {

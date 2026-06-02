@@ -40,6 +40,7 @@ public final class TshPush implements PushServiceListener {
 
     public interface PushTokenListener {
         void onComplete(final String token);
+        void onError(@NonNull Exception e);
     }
 
     private static final String TAG = TshPush.class.getSimpleName();
@@ -116,6 +117,7 @@ public final class TshPush implements PushServiceListener {
             @Override
             public void onComplete() {
                 // Push token was successfully updated.
+                AppLoggerHelper.debug(TAG, "ProvisioningBusinessService#updatePushToken() => onComplete");
             }
         });
     }

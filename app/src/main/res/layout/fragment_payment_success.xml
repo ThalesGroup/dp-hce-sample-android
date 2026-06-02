@@ -1,49 +1,54 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:gravity="center|top"
-    android:orientation="vertical">
+    android:gravity="center"
+    android:orientation="vertical"
+    android:padding="24dp">
 
     <com.thalesgroup.tshpaysample.ui.views.ViewCardFront
         android:id="@+id/fragment_payment_success_card_visual"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_margin="16dp" />
+        android:layout_marginBottom="32dp" />
 
+    <ImageView
+        android:id="@+id/iv_success_icon"
+        android:layout_width="100dp"
+        android:layout_height="100dp"
+        android:layout_marginBottom="24dp"
+        android:src="@drawable/ic_baseline_check_circle_24"
+        app:tint="?attr/colorSuccess"
+        android:contentDescription="@string/payment_successful" />
 
-    <LinearLayout
-        android:layout_width="match_parent"
+    <TextView
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:gravity="center"
-        android:orientation="vertical">
+        android:text="@string/payment_successful"
+        android:textAppearance="?attr/textAppearanceHeadlineMedium"
+        android:textColor="?attr/colorSuccess"
+        android:textStyle="bold" />
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="0dp"
-            android:text="Success, you paid"
-            android:textSize="24sp"
-            android:textColor="?attr/colorSuccess" />
-
-
-        <TextView
-            android:id="@+id/amount"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="0dp"
-            android:text="12 euro"
-            android:textColor="?attr/colorOnBackground"
-            android:textSize="30sp" />
-
-    </LinearLayout>
+    <TextView
+        android:id="@+id/amount"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:textAppearance="?attr/textAppearanceHeadlineLarge"
+        android:textColor="?attr/colorOnBackground"
+        android:textStyle="bold" />
 
     <Space
-        android:layout_width="0dp"
+        android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1" />
 
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_done"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/payment_done"
+        app:cornerRadius="12dp" />
 
 </LinearLayout>
-
-

@@ -4,6 +4,8 @@
 
 package com.thalesgroup.tshpaysample.sdk.init;
 
+import static com.thalesgroup.tshpaysample.BuildConfig.KEY_VALIDITY_PERIOD;
+
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -224,7 +226,7 @@ public class TshInit {
                 .singleTransactionAmountLimitForLVT(2000) // 20 EUR
                 .maxCumulativeAmountForLVT(10000) // 100 EUR
                 .maxConsecutivePaymentsForLVT(5)
-                .keyValidityPeriod(45)
+                .keyValidityPeriod(KEY_VALIDITY_PERIOD)
                 .supportTransitWithoutCDCVM(true)
                 .build();
 

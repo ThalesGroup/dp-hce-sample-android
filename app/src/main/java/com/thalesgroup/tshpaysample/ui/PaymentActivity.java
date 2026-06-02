@@ -132,7 +132,10 @@ public class PaymentActivity extends BaseAppActivity {
 
         AppLoggerHelper.debug(TAG, "onStop() at state = " + lastHandledState);
 
-        if (lastHandledState == TshPaymentState.STATE_ON_AUTHENTICATION_REQUIRED || lastHandledState == TshPaymentState.STATE_ON_READY_TO_TAP) {
+        if (lastHandledState == TshPaymentState.STATE_ON_AUTHENTICATION_REQUIRED
+                || lastHandledState == TshPaymentState.STATE_ON_READY_TO_TAP
+                || lastHandledState == TshPaymentState.STATE_ON_ERROR
+        ) {
             PaymentBusinessManager.getPaymentBusinessService().deactivate();
         }
 

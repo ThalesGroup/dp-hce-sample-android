@@ -4,10 +4,17 @@
 
 package com.thalesgroup.tshpaysample.utlis;
 
+import android.os.Bundle;
 import android.view.animation.AccelerateInterpolator;
 import android.view.animation.AlphaAnimation;
 import android.view.animation.Animation;
 import android.view.animation.DecelerateInterpolator;
+
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public final class CommonUtils {
 
@@ -52,6 +59,32 @@ public final class CommonUtils {
         setAnimationHandler(retValue, handler);
 
         return retValue;
+    }
+
+    /**
+     * Converts Intent extras (Bundle) to a JSON string for troubleshooting.
+     *
+     * @param bundle Bundle to convert.
+     * @return JSON string representation.
+     */
+    public static String bundleToJson(final Bundle bundle) {
+        if (bundle == null) {
+            return "{}";
+        }
+
+        final Map<String, Object> map = new HashMap<>();
+        for (final String key : bundle.keySet()) {
+            final Object value = bundle.get(key);
+
+            // Handle nested bundles recursively
+            if (value instanceof Bundle) {
+                map.put(key, bundleToJson((Bundle) value));
+            } else {
+                map.put(key, value);
+            }
+        }
+
+        return new GsonBuilder().setPrettyPrinting().create().toJson(map);
     }
 
     //endregion

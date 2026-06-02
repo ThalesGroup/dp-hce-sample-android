@@ -6,15 +6,21 @@ package com.thalesgroup.tshpaysample.ui.views;
 
 import android.content.Context;
 import android.content.res.TypedArray;
+import android.graphics.ColorMatrix;
+import android.graphics.ColorMatrixColorFilter;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.util.AttributeSet;
+import android.view.View;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.core.content.ContextCompat;
 
 import com.gemalto.mfs.mwsdk.dcm.DigitalizedCardDetails;
+import com.gemalto.mfs.mwsdk.dcm.DigitalizedCardState;
+import com.gemalto.mfs.mwsdk.dcm.DigitalizedCardStatus;
 import com.thalesgroup.tshpaysample.R;
 import com.thalesgroup.tshpaysample.sdk.helpers.AsyncHelperCardDetails;
 import com.thalesgroup.tshpaysample.sdk.helpers.CardWrapper;
@@ -28,6 +34,12 @@ public class ViewCardFront extends FrameLayout {
 
     private final int[] mColors;
 
+    public interface OnDefaultBadgeClickListener {
+        void onDefaultBadgeClick();
+    }
+
+    private OnDefaultBadgeClickListener mDefaultBadgeClickListener;
+
     //endregion
 
     //region Life Cycle
@@ -37,6 +49,12 @@ public class ViewCardFront extends FrameLayout {
 
         // Load visual part and store elements.
         inflate(getContext(), R.layout.view_card_front, this);
+
+        findViewById(R.id.view_card_front_default_badge).setOnClickListener(v -> {
+            if (mDefaultBadgeClickListener != null) {
+                mDefaultBadgeClickListener.onDefaultBadgeClick();
+            }
+        });
 
         final TypedArray attributes = context.obtainStyledAttributes(attrs, R.styleable.ViewCardFront);
 
@@ -69,6 +87,10 @@ public class ViewCardFront extends FrameLayout {
         ((TextView) findViewById(R.id.view_card_front_pan)).setText(value);
     }
 
+    public void setOnDefaultBadgeClickListener(OnDefaultBadgeClickListener listener) {
+        mDefaultBadgeClickListener = listener;
+    }
+
     public void loadCardDetails(final CardWrapper cardWrapper) {
         // Load card art. It can be both async or sync. Depend if we already have image downloaded.
         cardWrapper.getCardArt(getContext(), (drawable, loading) -> {
@@ -83,7 +105,34 @@ public class ViewCardFront extends FrameLayout {
             findViewById(R.id.view_card_front_type).setVisibility(drawable == null ? VISIBLE : INVISIBLE);
             // Display loading bar if we are downloading card art from backend.
             findViewById(R.id.view_card_front_progressbar).setVisibility(loading ? VISIBLE : GONE);
+
+            // Handle suspended state - gray out the card image
+            final DigitalizedCardStatus status = cardWrapper.getCachedCardStatus();
+            final View backgroundView = findViewById(R.id.view_card_front_background);
+            final Drawable background = backgroundView.getBackground();
+
+            if (background != null) {
+                background.mutate(); // Ensure we don't affect other cards
+                if (status != null && status.getState() == DigitalizedCardState.SUSPENDED) {
+                    final ColorMatrix matrix = new ColorMatrix();
+                    matrix.setSaturation(0); // Grayscale
+                    background.setColorFilter(new ColorMatrixColorFilter(matrix));
+                    backgroundView.setAlpha(0.6f);
+                } else {
+                    background.clearColorFilter();
+                    backgroundView.setAlpha(1.0f);
+                }
+            }
         });
+
+        // Display default badge icon - filled if default, outline if not.
+        final ImageView defaultBadge = findViewById(R.id.view_card_front_default_badge);
+        final boolean isDefault = cardWrapper.isDefault();
+        defaultBadge.setImageResource(isDefault ? R.drawable.baseline_star_24 : R.drawable.outline_star_24);
+        // Only allow clicking if it's not already default
+        defaultBadge.setClickable(!isDefault);
+        defaultBadge.setFocusable(!isDefault);
+        defaultBadge.setVisibility(VISIBLE);
 
         cardWrapper.getDigitalizedCardDetails(new AsyncHelperCardDetails.Delegate() {
             @Override

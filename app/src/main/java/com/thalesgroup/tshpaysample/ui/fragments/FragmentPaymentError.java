@@ -9,6 +9,9 @@ import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.Animation;
+import android.view.animation.AnimationUtils;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.thalesgroup.tshpaysample.R;
@@ -33,14 +36,37 @@ public class FragmentPaymentError extends AbstractFragment {
         final View root = inflater.inflate(R.layout.fragment_payment_error, container, false);
         final TextView messageTextView = root.findViewById(R.id.message);
         final ViewCardFront cardFrontView = root.findViewById(R.id.fragment_payment_error_card_visual);
+        final ImageView errorIcon = root.findViewById(R.id.iv_error_icon);
 
-        final TshPaymentErrorData data = getPaymentActivity().getErrorData();
-        if (data != null) {
-            messageTextView.setText(data.getMessage());
-            if(!TextUtils.isEmpty(data.getDigitalizedCardId())) {
-                cardFrontView.loadCardDetails(new CardWrapper(data.getDigitalizedCardId()));
+        final TshPaymentErrorData error = getPaymentActivity().getErrorData();
+        if (error != null) {
+            final StringBuilder sb = new StringBuilder();
+
+            if(!TextUtils.isEmpty(error.getCode())) {
+                sb.append(error.getCode());
+            }
+
+            if(!TextUtils.isEmpty(error.getCode()) && !TextUtils.isEmpty(error.getMessage())){
+                sb.append(": ");
+            }
+
+            if(!TextUtils.isEmpty(error.getMessage())){
+                sb.append(error.getMessage());
+            }
+
+            messageTextView.setText(sb.toString());
+
+            if(!TextUtils.isEmpty(error.getDigitalizedCardId())) {
+                cardFrontView.loadCardDetails(new CardWrapper(error.getDigitalizedCardId()));
             }
         }
+
+        // Animate icon
+        final Animation shake = AnimationUtils.loadAnimation(getContext(), R.anim.shake);
+        errorIcon.startAnimation(shake);
+
+        root.findViewById(R.id.btn_retry).setOnClickListener(v -> requireActivity().finish());
+
         return root;
     }
 

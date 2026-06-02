@@ -28,6 +28,7 @@ import com.gemalto.mfs.mwsdk.payment.engine.PaymentService;
 import com.gemalto.mfs.mwsdk.payment.engine.TransactionContext;
 import com.gemalto.mfs.mwsdk.sdkconfig.SDKError;
 import com.gemalto.mfs.mwsdk.utils.async.AsyncResult;
+import com.thalesgroup.tshpaysample.R;
 import com.thalesgroup.tshpaysample.sdk.SdkHelper;
 import com.thalesgroup.tshpaysample.sdk.helpers.CardWrapper;
 import com.thalesgroup.tshpaysample.sdk.helpers.HceHelper;
@@ -53,7 +54,7 @@ public class TshPaymentListener implements ContactlessPaymentServiceListener {
 
     private final MutableLiveData<Integer> mReadyToTapTimeRemaining = new MutableLiveData<>(45);
     private final MutableLiveData<String> mDefaultCardId = new MutableLiveData<>(null);
-    private CardWrapper mPreferredCard;
+    private String mOriginalCardId;
 
     //endregion
 
@@ -70,8 +71,9 @@ public class TshPaymentListener implements ContactlessPaymentServiceListener {
         return mDefaultCardId;
     }
 
-    public void saveDefaultAsPreferredCard() {
-        mPreferredCard = new CardWrapper(mDefaultCardId.getValue());
+    public void saveOriginalCardId() {
+        mOriginalCardId = mDefaultCardId.getValue();
+        AppLoggerHelper.info(TAG, "Cached original card id: " + mOriginalCardId);
     }
 
     //endregion
@@ -111,12 +113,17 @@ public class TshPaymentListener implements ContactlessPaymentServiceListener {
 
     public void restoreOriginalDefaultCard(){
 
-        if(mPreferredCard != null && mPreferredCard.getCardId() != mDefaultCardId.getValue()){
-            mPreferredCard.setDefault((result, error) -> {
-                // We will do only logging here as the CardWrapper#setDefault handles the propagation of the change
+        AppLoggerHelper.debug(TAG, String.format("Original card: %s, default card: %s", mOriginalCardId, mDefaultCardId.getValue()));
 
+        if(mOriginalCardId != null && !mOriginalCardId.equals(mDefaultCardId.getValue())){
+
+            final CardWrapper preferredCard = new CardWrapper(mOriginalCardId);
+
+            preferredCard.setDefault((result, error) -> {
+                // We will do only logging here as the CardWrapper#setDefault handles the propagation of the change
                 if (result) {
-                    AppLoggerHelper.info(TAG, "Default card restored to " + mPreferredCard.getCardId());
+                    AppLoggerHelper.info(TAG, "Default card restored to: " + mOriginalCardId);
+                    mOriginalCardId = null; // reset to avoid reverting to it later on
                 } else {
                     AppLoggerHelper.error(TAG, "Failed to restore original default card. Error: " + error);
                 }
@@ -125,11 +132,6 @@ public class TshPaymentListener implements ContactlessPaymentServiceListener {
     }
 
     //endregion
-
-
-
-
-
 
     //region Protected Helpers
 
@@ -246,7 +248,11 @@ public class TshPaymentListener implements ContactlessPaymentServiceListener {
                                              final long cvmResetTimeout) {
                 updateAmountAndCurrency(paymentService);
 
-                updateState(TshPaymentState.STATE_ON_ERROR, new TshPaymentErrorData("", "Timer exceeded", mAmount, mCurrency, mDefaultCardId.getValue()));
+                updateState(TshPaymentState.STATE_ON_ERROR, new TshPaymentErrorData("",
+                        mContext.getString(R.string.payment_timer_exceeded),
+                        mAmount,
+                        mCurrency,
+                        mDefaultCardId.getValue()));
             }
         });
 

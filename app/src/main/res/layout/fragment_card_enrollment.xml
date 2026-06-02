@@ -1,75 +1,113 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-    android:orientation="vertical"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:fillViewport="true">
 
     <LinearLayout
-        android:orientation="vertical"
-        android:gravity="center|top"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:padding="16dp">
+        android:orientation="vertical"
+        android:padding="24dp">
 
         <com.thalesgroup.tshpaysample.ui.views.ViewCardFront
             android:id="@+id/fragment_card_enrollment_card_visual"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"/>
+            android:layout_marginBottom="24dp" />
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="start"
-            android:layout_marginTop="16dp"
-            android:textColor="?attr/colorOnBackground"
-            android:text="@string/fragment_card_enrollment_pan"/>
-        <EditText
-            android:id="@+id/fragment_card_enrollment_pan"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:inputType="number"
-            android:hint="@string/fragment_card_enrollment_pan"/>
+            android:layout_marginBottom="8dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:id="@+id/fragment_card_enrollment_view_test_card_selection">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="start"
-            android:layout_marginTop="16dp"
-            android:textColor="?attr/colorOnBackground"
-            android:text="@string/fragment_card_enrollment_exp"/>
-        <EditText
-            android:id="@+id/fragment_card_enrollment_exp"
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/fragment_card_enrollment_test_cards_label"
+                android:textAppearance="?attr/textAppearanceLabelMedium"
+                android:textColor="?attr/colorOnSurfaceVariant" />
+
+            <Spinner
+                android:id="@+id/fragment_card_enrollment_spinner_test_cards"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@null"
+                android:minWidth="0dp"
+                android:minHeight="0dp"
+                android:padding="4dp" />
+        </LinearLayout>
+
+        <com.google.android.material.textfield.TextInputLayout
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:inputType="number"
-            android:hint="@string/fragment_card_enrollment_exp"/>
+            android:layout_marginBottom="16dp"
+            android:hint="@string/fragment_card_enrollment_pan"
+            app:startIconDrawable="@drawable/outline_credit_card_24">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="start"
-            android:layout_marginTop="16dp"
-            android:textColor="?attr/colorOnBackground"
-            android:text="@string/fragment_card_enrollment_cvv"/>
-        <EditText
-            android:id="@+id/fragment_card_enrollment_cvv"
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/fragment_card_enrollment_pan"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="number" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:inputType="number"
-            android:hint="@string/fragment_card_enrollment_cvv"/>
+            android:orientation="horizontal">
 
-        <Space
+            <com.google.android.material.textfield.TextInputLayout
+                style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="8dp"
+                android:layout_weight="1"
+                android:hint="@string/fragment_card_enrollment_exp"
+                app:startIconDrawable="@drawable/outline_calendar_today_24">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/fragment_card_enrollment_exp"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="number" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <com.google.android.material.textfield.TextInputLayout
+                style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:hint="@string/fragment_card_enrollment_cvv"
+                app:startIconDrawable="@drawable/outline_lock_24">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/fragment_card_enrollment_cvv"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="numberPassword" />
+            </com.google.android.material.textfield.TextInputLayout>
+        </LinearLayout>
+
+        <View
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_weight="1"/>
+            android:layout_weight="1" />
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/fragment_card_enrollment_button_enroll"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/fragment_card_enrollment_button_enroll"/>
+            android:layout_marginTop="24dp"
+            android:padding="12dp"
+            android:text="@string/fragment_card_enrollment_button_enroll" />
 
     </LinearLayout>
-
 </ScrollView>

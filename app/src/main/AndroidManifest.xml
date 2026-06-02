@@ -18,14 +18,6 @@
 
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
 
-    <!-- For Payment Service -->
-    <uses-feature
-        android:name="android.hardware.nfc"
-        android:required="true" />
-    <uses-feature
-        android:name="android.hardware.nfc.hce"
-        android:required="true" />
-
     <uses-permission android:name="android.permission.NFC" />
 
     <application
@@ -36,17 +28,30 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.TSHPaySample.NEW">
 
-        <!-- Application UI entry point. -->
+        <!-- NEW: SplashActivity is the main entry point. -->
+        <activity
+            android:name=".ui.SplashActivity"
+            android:exported="true"
+            android:theme="@style/Theme.SplashScreen"> <!-- Optional: Use a splash screen theme -->
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- NEW: Declare PrerequisitesActivity. -->
+        <activity
+            android:name=".ui.PrerequisitesActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.TSHPaySample.NEW" />
+
+        <!-- CardListActivity is NO LONGER the launcher. -->
         <activity
             android:name=".ui.CardListActivity"
             android:exported="true"
             android:screenOrientation="portrait"
             android:theme="@style/Theme.TSHPaySample.NEW">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
         </activity>
 
         <activity

@@ -4,12 +4,15 @@
 
 package com.thalesgroup.tshpaysample.ui.fragments;
 
+import static com.thalesgroup.tshpaysample.BuildConfig.KEY_VALIDITY_PERIOD;
+
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
+import com.google.android.material.progressindicator.CircularProgressIndicator;
 import com.thalesgroup.tshpaysample.R;
 import com.thalesgroup.tshpaysample.sdk.SdkHelper;
 import com.thalesgroup.tshpaysample.sdk.helpers.CardWrapper;
@@ -25,8 +28,8 @@ public class FragmentPaymentReady extends AbstractFragment {
 
     //region Defines
 
-    //    private TextView mMessageTextView;
     private TextView mSecondsTextView;
+    private CircularProgressIndicator mTimerProgress;
 
     //endregion
 
@@ -46,6 +49,10 @@ public class FragmentPaymentReady extends AbstractFragment {
 
 //        mMessageTextView = root.findViewById(R.id.message);
         mSecondsTextView = root.findViewById(R.id.remaining_seconds);
+        mTimerProgress = root.findViewById(R.id.timer_progress);
+        if (mTimerProgress != null) {
+            mTimerProgress.setMax(KEY_VALIDITY_PERIOD);
+        }
 
         final TextView amountTextView = root.findViewById(R.id.amount);
         final ViewCardFront cardFrontView = root.findViewById(R.id.fragment_payment_ready_card_visual);
@@ -71,6 +78,10 @@ public class FragmentPaymentReady extends AbstractFragment {
     public void onReadyToTapTimeRemainingChanged(final Integer remainingSeconds) {
         AppLoggerHelper.debug(TAG, "onReadyToTapTimeRemainingChanged(): " + remainingSeconds);
         mSecondsTextView.setText(String.format(Locale.getDefault(), "%d s", remainingSeconds));
+
+        if (mTimerProgress != null) {
+            mTimerProgress.setProgress(remainingSeconds);
+        }
     }
 
     //endregion

@@ -1,11 +1,19 @@
 # Thales NFC Wallet SDK Android Sample Application
 
 Please see our developer portal for further details about the SDK integration:
-* [Introduction](https://developer.dbp.thalescloud.io/docs/tsh-hce-android/)
-* [Quick start guide](https://developer.dbp.thalescloud.io/docs/tsh-hce-android/4c26a3bda35bf-introduction)
+* [NFC Wallet product home page](https://docs.payments.thalescloud.io/nfc-wallet)
+* [Get started with Android NFC Wallet SDK](https://docs.payments.thalescloud.io/nfc-wallet-sdk-android/get-started)
 
 
 ## Changelog
+
+### v1.4
+* Added a landing page to verify device readiness (NFC enabled, secure unlock method configured etc.) before enrolling cards.
+* UI redesigned according to Material Design guidelines.
+* Project upgraded to use the latest SDK dependencies [NFC Wallet SDK v6.14.0](https://docs.payments.thalescloud.io/release-notes/sdk/march-2026/nfc-wallet-sdk-android-6.14.0).
+* Added possibility to load test card data from JSON asset file.
+* Minor updates and fixes.
+
 
 ### v1.3
 * Project updated to newer Android Studio (Android Studio Narwhal Feature Drop | 2025.1.2 Patch 1), AGP (8.12.0), build tools and dependencies versions

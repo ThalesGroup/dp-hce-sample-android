@@ -10,17 +10,29 @@ import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.EditText;
+import android.widget.Spinner;
 
 import androidx.annotation.IdRes;
-import androidx.annotation.StringRes;
+import androidx.annotation.NonNull;
 
+import com.google.gson.Gson;
 import com.thalesgroup.tshpaysample.R;
 import com.thalesgroup.tshpaysample.sdk.SdkHelper;
 import com.thalesgroup.tshpaysample.ui.CardListActivity;
 import com.thalesgroup.tshpaysample.ui.views.ViewCardFront;
+import com.thalesgroup.tshpaysample.utlis.AppLoggerHelper;
+
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 public class FragmentCardEnrollment extends AbstractFragment {
+    private static final String TAG =  FragmentCardEnrollment.class.getSimpleName();
 
     //region Defines
 
@@ -28,6 +40,23 @@ public class FragmentCardEnrollment extends AbstractFragment {
     private EditText mEditPan;
     private EditText mEditCvv;
     private EditText mEditExp;
+    private Spinner mSpinnerTestCards;
+
+    private View mTestCardSelectionView;
+    private final List<TestCard> mTestCards = new ArrayList<>();
+
+    private static class TestCard {
+        String name;
+        String pan;
+        String exp;
+        String cvv;
+
+        @NonNull
+        @Override
+        public String toString() {
+            return name;
+        }
+    }
 
     //endregion
 
@@ -43,19 +72,23 @@ public class FragmentCardEnrollment extends AbstractFragment {
                              final ViewGroup container,
                              final Bundle savedInstanceState) {
         // Inflate the layout for this fragment
-        final View retValue = inflater.inflate(R.layout.fragment_card_enrollment, container, false);
+        final View fragmentRootView = inflater.inflate(R.layout.fragment_card_enrollment, container, false);
 
         // Load UI elements and default test data.
-        mViewCardFront = retValue.findViewById(R.id.fragment_card_enrollment_card_visual);
-        mEditPan = initEdit(retValue, R.id.fragment_card_enrollment_pan, R.string.test_data_pan, true);
-        mEditExp = initEdit(retValue, R.id.fragment_card_enrollment_exp, R.string.test_data_exp, true);
-        mEditCvv = initEdit(retValue, R.id.fragment_card_enrollment_cvv, R.string.test_data_cvv, false);
+        mViewCardFront = fragmentRootView.findViewById(R.id.fragment_card_enrollment_card_visual);
+        mEditPan = initEdit(fragmentRootView, R.id.fragment_card_enrollment_pan, true);
+        mEditExp = initEdit(fragmentRootView, R.id.fragment_card_enrollment_exp, true);
+        mEditCvv = initEdit(fragmentRootView, R.id.fragment_card_enrollment_cvv, false);
 
-        retValue.findViewById(R.id.fragment_card_enrollment_button_enroll).setOnClickListener(this::onButtonPressEnroll);
+        mTestCardSelectionView = fragmentRootView.findViewById(R.id.fragment_card_enrollment_view_test_card_selection);
+        mSpinnerTestCards = fragmentRootView.findViewById(R.id.fragment_card_enrollment_spinner_test_cards);
+        setupTestCardsSpinner();
+
+        fragmentRootView.findViewById(R.id.fragment_card_enrollment_button_enroll).setOnClickListener(this::onButtonPressEnroll);
 
         updateCardVisual();
 
-        return retValue;
+        return fragmentRootView;
     }
 
     //endregion
@@ -64,10 +97,8 @@ public class FragmentCardEnrollment extends AbstractFragment {
 
     private EditText initEdit(final View parent,
                               @IdRes final int viewId,
-                              @StringRes final int textId,
                               final boolean addListener) {
         final EditText retValue = parent.findViewById(viewId);
-        retValue.setText(getText(textId));
 
         if (addListener) {
             retValue.addTextChangedListener(new TextWatcher() {
@@ -101,6 +132,54 @@ public class FragmentCardEnrollment extends AbstractFragment {
     private void updateCardVisual() {
         mViewCardFront.setPan(mEditPan.getText().toString());
         mViewCardFront.setExp(mEditExp.getText().toString());
+    }
+
+    private void setupTestCardsSpinner() {
+        loadTestCards();
+
+        if(mTestCards.size() <= 1){
+            mTestCardSelectionView.setVisibility(View.GONE);
+            return;
+        }
+
+        final ArrayAdapter<TestCard> adapter = new ArrayAdapter<>(requireContext(), R.layout.spinner_item_test_cards, mTestCards);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        mSpinnerTestCards.setAdapter(adapter);
+
+        mSpinnerTestCards.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                if (position > 0) {
+                    final TestCard selected = mTestCards.get(position);
+                    mEditPan.setText(selected.pan);
+                    mEditExp.setText(selected.exp);
+                    mEditCvv.setText(selected.cvv);
+                    updateCardVisual();
+                }
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+                // Nothing to do
+            }
+        });
+    }
+
+    private void loadTestCards() {
+        mTestCards.clear();
+        final TestCard placeholder = new TestCard();
+        placeholder.name = getString(R.string.fragment_card_enrollment_test_cards_prompt);
+        mTestCards.add(placeholder);
+
+        try (Reader reader = new InputStreamReader(requireContext().getAssets().open("test_cards.json"))) {
+            final TestCard[] cards = new Gson().fromJson(reader, TestCard[].class);
+            if (cards != null) {
+                mTestCards.addAll(Arrays.asList(cards));
+            }
+        } catch (final Exception e) {
+            AppLoggerHelper.warn(TAG, "Failed to load test cards from asset file: " + e);
+            mTestCards.clear();
+        }
     }
 
     //endregion

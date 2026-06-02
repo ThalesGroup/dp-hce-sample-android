@@ -106,6 +106,10 @@ public class BaseAppActivity extends AppCompatActivity {
      */
     public void showFragment(final AbstractFragment fragment, final boolean addToBackStack) {
         final FragmentTransaction fragmentTransaction = getSupportFragmentManager().beginTransaction();
+        
+        // Add smooth fade transition
+        fragmentTransaction.setCustomAnimations(R.anim.fade_in, R.anim.fade_out, R.anim.fade_in, R.anim.fade_out);
+
         fragmentTransaction.replace(R.id.fragment_container, fragment, FRAGMENT_TAG);
 
         if (addToBackStack) {

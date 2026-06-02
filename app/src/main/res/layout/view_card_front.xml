@@ -94,4 +94,20 @@
         app:layout_constraintEnd_toEndOf="parent"
         android:visibility="gone"/>
 
+    <ImageView
+        android:id="@+id/view_card_front_default_badge"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:layout_margin="12dp"
+        android:src="@drawable/outline_star_24"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:elevation="4dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        tools:visibility="visible"
+        android:visibility="gone"
+        android:contentDescription="@string/view_card_front_default_badge_desc" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

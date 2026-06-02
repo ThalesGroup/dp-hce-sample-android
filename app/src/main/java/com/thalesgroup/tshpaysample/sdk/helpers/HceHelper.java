@@ -1,14 +1,25 @@
 package com.thalesgroup.tshpaysample.sdk.helpers;
 
+import static android.nfc.cardemulation.CardEmulation.ACTION_CHANGE_DEFAULT;
+import static android.nfc.cardemulation.CardEmulation.CATEGORY_PAYMENT;
+import static android.nfc.cardemulation.CardEmulation.EXTRA_CATEGORY;
+import static android.nfc.cardemulation.CardEmulation.EXTRA_SERVICE_COMPONENT;
+
 import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.DialogInterface;
+import android.content.Intent;
 import android.nfc.NfcManager;
 import android.nfc.cardemulation.CardEmulation;
+import android.provider.Settings;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 
 import com.thalesgroup.tshpaysample.sdk.payment.TshPaymentHceService;
+import com.thalesgroup.tshpaysample.ui.CardListActivity;
 import com.thalesgroup.tshpaysample.utlis.AppLoggerHelper;
 
 public class HceHelper {
@@ -19,16 +30,32 @@ public class HceHelper {
 
     public static boolean doesDeviceSupportHCE(@NonNull final Context context) {
         final boolean hasNfc = context.getPackageManager().hasSystemFeature("android.hardware.nfc");
-        final boolean supportsNfc = context.getPackageManager().hasSystemFeature("android.hardware.nfc.hce");
+        final boolean supportsHce = context.getPackageManager().hasSystemFeature("android.hardware.nfc.hce");
 
-        AppLoggerHelper.debug(TAG, String.format("doesDeviceSupportHCE(): Has NFC: %b; Supports HCE: %b", hasNfc, supportsNfc));
+        AppLoggerHelper.debug(TAG, String.format("doesDeviceSupportHCE(): Has NFC: %b; Supports HCE: %b", hasNfc, supportsHce));
 
-        if (!hasNfc || !supportsNfc){
+        if (!hasNfc || !supportsHce){
             AppLoggerHelper.warn(TAG, "doesDeviceSupportHCE(): The device does no have NFC interface or does not support HCE!");
             return false;
         }
 
         return true;
+    }
+
+
+    public static boolean isForegroundPreferenceAllowed(@NonNull final Context context) {
+        if (!HceHelper.doesDeviceSupportHCE(context)) {
+            return false;
+        }
+
+        final NfcManager manager = (NfcManager) context.getSystemService(Context.NFC_SERVICE);
+        final CardEmulation cardEmulation = CardEmulation.getInstance(manager.getDefaultAdapter());
+
+        boolean isAllowed = cardEmulation.categoryAllowsForegroundPreference(CardEmulation.CATEGORY_PAYMENT);
+
+        AppLoggerHelper.debug(TAG, "isForegroundPreferenceAllowed(): " + isAllowed);
+
+        return isAllowed;
     }
 
     /***
@@ -77,11 +104,29 @@ public class HceHelper {
     }
 
     public static boolean isHceServiceSetAsDefault(@NonNull final Context context){
+
+        if(!doesDeviceSupportHCE(context)) return false;
+
         final ComponentName appHceComponent = new ComponentName(context, TshPaymentHceService.class.getCanonicalName());
         final NfcManager manager = (NfcManager) context.getSystemService(Context.NFC_SERVICE);
         final CardEmulation cardEmulation = CardEmulation.getInstance(manager.getDefaultAdapter());
 
-        return cardEmulation.isDefaultServiceForCategory(appHceComponent, CardEmulation.CATEGORY_PAYMENT);
+        final boolean isDefault = cardEmulation.isDefaultServiceForCategory(appHceComponent, CardEmulation.CATEGORY_PAYMENT);
+
+        AppLoggerHelper.debug(TAG, "isHceServiceSetAsDefault(): " + isDefault);
+
+        return isDefault;
     }
+
+    public static Intent buildHceServiceAsDefaultRequestIntent(@NonNull final Context context){
+
+        Intent intentSetDefaultTapNPay = new Intent();
+        intentSetDefaultTapNPay.setAction(ACTION_CHANGE_DEFAULT);
+        intentSetDefaultTapNPay.putExtra(EXTRA_SERVICE_COMPONENT,  new ComponentName(context, TshPaymentHceService.class.getCanonicalName()));
+        intentSetDefaultTapNPay.putExtra(EXTRA_CATEGORY, CATEGORY_PAYMENT);
+
+        return intentSetDefaultTapNPay;
+    }
+
 }
 

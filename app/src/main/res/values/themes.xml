@@ -1,12 +1,31 @@
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
 
     <style name="Theme.TSHPaySample.NEW" parent="Theme.Material3.DayNight">
         <!-- No customizations needed except defining successColor -->
         <item name="colorSuccess">@color/colorSuccess</item>
+
+        <!-- Ensure system bar icons are readable on light background -->
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
     </style>
 
 
     <style name="button_borderless_common" parent="@style/Widget.AppCompat.Button.Borderless">
         <item name="android:textColor">@color/button_text_color</item>
+    </style>
+
+    <style name="Theme.SplashScreen" parent="Theme.SplashScreen" tools:ignore="ResourceCycle">
+        <!-- The background color of the splash screen. -->
+        <item name="windowSplashScreenBackground">@android:color/white</item>
+
+        <!-- The icon to display in the center of the splash screen. -->
+        <!-- Replace @mipmap/ic_launcher with your desired icon drawable. -->
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
+
+        <!-- Optional: The duration of the icon animation. -->
+        <item name="windowSplashScreenAnimationDuration">1000</item>
+
+        <!-- The theme to apply to the activity after the splash screen is gone. -->
+        <item name="postSplashScreenTheme">@style/Theme.TSHPaySample.NEW</item>
     </style>
 </resources>

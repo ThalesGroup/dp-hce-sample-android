@@ -104,7 +104,7 @@ public class CardListAdapter extends FragmentStateAdapter {
 
 
     /***
-     * Checks if there is a default card already set and if not it looks for the the first active card and sets it as default.
+     * Checks if there is a default card already set and if not it looks for the first active card and sets it as default.
      * This makes sure that a default card is always set when possible.
      */
     private void checkAndSetDefaultCard(){
@@ -135,14 +135,13 @@ public class CardListAdapter extends FragmentStateAdapter {
     //region Private Helpers
 
     private void notifyPages() {
-        // For simplification we will reload entire list, but we might want to load just some part.
+        // For simplification, we will reload entire list, but we might want to load just some part.
         notifyDataSetChanged();
 
         // There is no easy way to update individual fragments with new FragmentStateAdapter.
         // Update them manually so we do not have to overcomplicate the sample app.
         for (final Fragment loopFragment : mFragmentManager.getFragments()) {
-            if (loopFragment instanceof FragmentCardPage) {
-                final FragmentCardPage pageToNotify = (FragmentCardPage) loopFragment;
+            if (loopFragment instanceof FragmentCardPage pageToNotify) {
                 pageToNotify.updateState();
             }
         }

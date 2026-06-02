@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
@@ -8,37 +7,38 @@
     <androidx.viewpager2.widget.ViewPager2
         android:id="@+id/fragment_card_list_pager"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"/>
-
-    <ImageView
-        android:id="@+id/fragment_card_list_secure_log_send"
-        android:layout_width="60dp"
-        android:layout_height="60dp"
-        android:layout_margin="16dp"
-        android:layout_gravity="start|bottom"
-        android:elevation="8dp"
-        android:src="@drawable/outline_logo_dev_24"
-        android:contentDescription="@string/fragment_card_list_add_button_desc"
-        app:tint="@drawable/add_button_tint" />
-
-    <ImageView
-        android:id="@+id/fragment_card_list_add_button"
-        android:layout_width="60dp"
-        android:layout_height="60dp"
-        android:layout_margin="16dp"
-        android:layout_gravity="end|bottom"
-        android:elevation="8dp"
-        android:src="@drawable/outline_add_circle_24"
-        android:contentDescription="@string/fragment_card_list_add_button_desc"
-        app:tint="@drawable/add_button_tint" />
+        android:layout_height="0dp"
+        app:layout_constraintBottom_toTopOf="@+id/fragment_card_list_tab_layout"
+        app:layout_constraintTop_toTopOf="parent" />
 
     <com.google.android.material.tabs.TabLayout
         android:id="@+id/fragment_card_list_tab_layout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="bottom"
+        android:layout_marginBottom="80dp"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:tabBackground="@drawable/tab_selector"
         app:tabGravity="center"
-        app:tabIndicatorHeight="0dp"/>
+        app:tabIndicatorHeight="0dp" />
 
-</FrameLayout>
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fragment_card_list_secure_log_send"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp"
+        android:contentDescription="@string/fragment_card_list_add_button_desc"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:srcCompat="@drawable/outline_logo_dev_24" />
+
+    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+        android:id="@+id/fragment_card_list_add_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp"
+        android:text="@string/fragment_card_list_add_card"
+        app:icon="@drawable/outline_add_circle_24"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

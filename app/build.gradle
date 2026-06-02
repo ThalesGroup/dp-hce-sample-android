@@ -5,34 +5,31 @@ plugins {
 }
 
 def keystoreProperties = new Properties()
-keystoreProperties.load(new FileInputStream(rootProject.file("keystore/keystore.properties")))
+keystoreProperties.load(new FileInputStream(rootProject.file("keystore/tsh-demo-keystore.properties")))
 
 android {
     namespace "com.thalesgroup.tshpaysample"
 
     defaultConfig {
         applicationId "com.thalesgroup.tshpaysample"
-        minSdkVersion 23
+        minSdkVersion 27
         targetSdkVersion 36
         compileSdkVersion 36
-        versionCode 1302
-        versionName "1.3.rc02"
+        versionCode 14002
+        versionName "1.4.rc02"
         multiDexEnabled true
+
+        buildConfigField "int", "KEY_VALIDITY_PERIOD", "45"
     }
 
     signingConfigs {
-        debug {
-            storeFile file("${project.rootDir}/${keystoreProperties['debugStoreFile']}")
-            storePassword keystoreProperties['debugStorePassword']
-            keyAlias keystoreProperties['debugKeyAlias']
-            keyPassword keystoreProperties['debugKeyPassword']
+        thalesTshSandbox {
+            storeFile file("${project.rootDir}/${keystoreProperties['keystoreFile']}")
+            storePassword keystoreProperties['keystorePassword']
+            keyAlias keystoreProperties['keyAlias']
+            keyPassword keystoreProperties['keyPassword']
         }
-        release {
-            storeFile file("${project.rootDir}/${keystoreProperties['releaseStoreFile']}")
-            storePassword keystoreProperties['releaseStorePassword']
-            keyAlias keystoreProperties['releaseKeyAlias']
-            keyPassword keystoreProperties['releaseKeyPassword']
-        }
+
     }
 
     // Create link between environment and flavour
@@ -44,12 +41,12 @@ android {
 
     buildTypes {
         debug {
-            signingConfig signingConfigs.debug
+            signingConfig signingConfigs.thalesTshSandbox
             buildConfigField "int", "LOG_LEVEL", "2"  // Set 2..7, the lower the number the more logs are displayed, 2 == Log.VERBOSE
         }
         release {
-            minifyEnabled false
-            signingConfig signingConfigs.release
+            minifyEnabled true
+            signingConfig signingConfigs.thalesTshSandbox
             buildConfigField "int", "LOG_LEVEL", "4"  // Set 2..7, the lower the number the more logs are displayed, 4 == Log.INFO
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
@@ -96,10 +93,11 @@ dependencies {
     implementation libs.constraintlayout
     implementation libs.play.services.base
     implementation libs.biometric
+    implementation libs.gson
 
     // TSH Pay SDK
-    debugImplementation (files("libs/TSHPaySDK-dev-6.12.0.rc01.aar"))
-    releaseImplementation (files("libs/TSHPaySDK-release-6.12.0.rc01.aar"))
+    debugImplementation (files("libs/TSHPaySDK-dev-6.14.0.rc01.aar"))
+    releaseImplementation (files("libs/TSHPaySDK-release-6.14.0.rc01.aar"))
 
     // SDK Dependency
     implementation(libs.jna) { artifact { type = 'aar' } }
@@ -114,6 +112,8 @@ dependencies {
 
     // Multi-dex application to prevent any size issue.
     implementation libs.multidex
+
+    implementation libs.core.splashscreen
 }
 java {
     toolchain {

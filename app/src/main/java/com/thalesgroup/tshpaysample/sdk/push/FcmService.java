@@ -30,6 +30,8 @@ public class FcmService extends FirebaseMessagingService {
     public void onNewToken(final @NonNull String token) {
         super.onNewToken(token);
 
+        AppLoggerHelper.info(TAG, "onNewToken(): " + token);
+
         // Make sure, that token is up-to date.
         SdkHelper.getInstance().getPush().updateToken(this, token);
     }
@@ -59,8 +61,10 @@ public class FcmService extends FirebaseMessagingService {
         // This approach will return FCM token each time. Even if it's not changed.
         FirebaseMessaging.getInstance().getToken().addOnCompleteListener(task -> {
             if (task.isSuccessful()) {
+                final String token = task.getResult();
+                AppLoggerHelper.info(TAG, "init(): " + token);
                 // Make sure, that token is up-to date.
-                SdkHelper.getInstance().getPush().updateToken(context, task.getResult());
+                SdkHelper.getInstance().getPush().updateToken(context, token);
             } else {
                 AppLoggerHelper.exception(TAG, "Fetching FCM registration token failed", task.getException());
             }
@@ -70,11 +74,17 @@ public class FcmService extends FirebaseMessagingService {
     public static void getPushToken(@NonNull final Context context,
                                     @NonNull final TshPush.PushTokenListener completion) {
         FirebaseMessaging.getInstance().getToken().addOnCompleteListener(task -> {
-            if (!task.isSuccessful()) {
-                throw new IllegalStateException(context.getString(R.string.push_token_missing));
+            if (task.isSuccessful() && task.getResult() != null) {
+                completion.onComplete(task.getResult());
+            } else {
+                // Pass the actual exception to the listener's new onError method.
+                // If the task failed but the exception is null, create a new one.
+                Exception error = task.getException();
+                if (error == null) {
+                    error = new IllegalStateException(context.getString(R.string.push_token_missing));
+                }
+                completion.onError(error);
             }
-
-           completion.onComplete(task.getResult());
         });
     }
 

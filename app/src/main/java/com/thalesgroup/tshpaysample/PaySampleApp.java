@@ -17,6 +17,7 @@ import androidx.lifecycle.Observer;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import androidx.multidex.MultiDexApplication;
 
+import com.gemalto.mfs.mwsdk.SDKEnv;
 import com.gemalto.mfs.mwsdk.dcm.DigitalizedCard;
 import com.gemalto.mfs.mwsdk.dcm.DigitalizedCardDetails;
 import com.gemalto.mfs.mwsdk.dcm.DigitalizedCardManager;
@@ -56,8 +57,10 @@ public class PaySampleApp extends MultiDexApplication implements InternalNotific
         // Register for SDK init changes
         SdkHelper.getInstance().getInit().getSdkInitState().observeForever(mInitObserver);
 
+        SDKEnv.displaySDKVersion();
+
         // Start SDK init.
-        AppLoggerHelper.info(TAG, "Starting to initialize");
+        AppLoggerHelper.info(TAG, "Starting to initialize SDK v " + SDKEnv.SDK_VERSION);
         SdkHelper.getInstance().init(this);
     }
 

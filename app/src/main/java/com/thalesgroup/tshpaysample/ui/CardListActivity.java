@@ -4,22 +4,14 @@
 
 package com.thalesgroup.tshpaysample.ui;
 
-import android.Manifest;
-import android.content.ComponentName;
-import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
-import android.nfc.NfcManager;
-import android.nfc.cardemulation.CardEmulation;
-import android.os.Build;
 import android.os.Bundle;
-import android.provider.Settings;
 import android.text.InputType;
 import android.widget.EditText;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 
 import com.gemalto.mfs.mwsdk.mobilegateway.enrollment.AppToAppData;
@@ -31,19 +23,22 @@ import com.thalesgroup.tshpaysample.sdk.enrollment.TshEnrollment;
 import com.thalesgroup.tshpaysample.sdk.enrollment.TshEnrollmentDelegate;
 import com.thalesgroup.tshpaysample.sdk.enrollment.TshEnrollmentState;
 import com.thalesgroup.tshpaysample.sdk.helpers.HceHelper;
-import com.thalesgroup.tshpaysample.sdk.payment.TshPaymentHceService;
+import com.thalesgroup.tshpaysample.ui.fragments.FragmentCardEnrollment;
+import com.thalesgroup.tshpaysample.ui.fragments.FragmentCardList;
 import com.thalesgroup.tshpaysample.ui.fragments.FragmentSplash;
 import com.thalesgroup.tshpaysample.ui.fragments.FragmentTermsAndConditions;
 import com.thalesgroup.tshpaysample.utlis.AppLoggerHelper;
+import com.thalesgroup.tshpaysample.utlis.CommonUtils;
 
 import java.util.List;
 
 public class CardListActivity extends BaseAppActivity implements TshEnrollmentDelegate {
 
     //region Defines
+    public static final String EXTRA_START_ENROLLMENT = "com.thalesgroup.tshpaysample.EXTRA_START_ENROLLMENT";
 
     private static final String TAG = CardListActivity.class.getSimpleName();
-    private static final int REQUEST_CODE_POST_NOTIFICATIONS = 19641;
+
     private TshEnrollmentState mLastProcessedState;
 
     //endregion
@@ -52,6 +47,8 @@ public class CardListActivity extends BaseAppActivity implements TshEnrollmentDe
 
     //region Life Cycle
 
+
+
     @Override
     protected void onCreate(final Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -59,11 +56,36 @@ public class CardListActivity extends BaseAppActivity implements TshEnrollmentDe
 
         super.onViewCreated();
 
-        // By default load splash screen.
-        showFragment(new FragmentSplash(), false);
+        handleIntent(getIntent());
+    }
 
-        checkAndSetDefaultForTapAndPay();
-        requestNotificationPermissionIfNeeded();
+    @Override
+    protected void onNewIntent(Intent intent) {
+
+
+
+        super.onNewIntent(intent);
+        // Also handle the intent if the activity is already running and receives a new one
+        setIntent(intent);
+        handleIntent(intent);
+    }
+
+    private void handleIntent(Intent intent) {
+        AppLoggerHelper.debug(TAG, String.format("handleIntent() %s", (intent == null ? "null" : "extras: " + CommonUtils.bundleToJson(intent.getExtras()))));
+
+        if (intent != null && intent.getBooleanExtra(EXTRA_START_ENROLLMENT, false)) {
+            // To prevent back navigation to a blank screen, we must ensure FragmentCardList is the root.
+            // This mirrors the flow of clicking "Add Card" from the list.
+            showFragment(new FragmentCardList(), false);
+            showFragment(new FragmentCardEnrollment(), true);
+
+            // Important: To prevent this from happening again on configuration changes (like rotation),
+            // remove the extra from the intent after it has been processed.
+            getIntent().removeExtra(EXTRA_START_ENROLLMENT);
+        } else {
+            // By default load splash screen.
+            showFragment(new FragmentSplash(), false);
+        }
     }
 
     @Override
@@ -101,6 +123,7 @@ public class CardListActivity extends BaseAppActivity implements TshEnrollmentDe
         if (state == TshEnrollmentState.ENROLLING_FINISHED) {
             progressHide();
             displayMessageToast(state.getActionDescription());
+            showFragment(new FragmentCardList(), false);
             reloadFragmentData();
         } else if (state == TshEnrollmentState.ELIGIBILITY_TERMS_AND_CONDITIONS) {
             progressHide();
@@ -246,70 +269,5 @@ public class CardListActivity extends BaseAppActivity implements TshEnrollmentDe
     //endregion
 
 
-    //region Private helpers
-
-
-    private void checkAndSetDefaultForTapAndPay() {
-        if (!HceHelper.doesDeviceSupportHCE(this)) {
-            return;
-        }
-
-        final ComponentName appHceComponent = new ComponentName(this, TshPaymentHceService.class.getCanonicalName());
-        final NfcManager manager = (NfcManager) this.getSystemService(Context.NFC_SERVICE);
-        final CardEmulation cardEmulation = CardEmulation.getInstance(manager.getDefaultAdapter());
-
-        if(cardEmulation.isDefaultServiceForCategory(appHceComponent, CardEmulation.CATEGORY_PAYMENT)){
-            AppLoggerHelper.debug(TAG, "App's service is already set as default for payment");
-        } else if (cardEmulation.categoryAllowsForegroundPreference(CardEmulation.CATEGORY_PAYMENT)){
-            AppLoggerHelper.debug(TAG, "Payments with a foreground apps are allowed");
-            AppLoggerHelper.warn(TAG, "Payments will be processed ONLY when application is on the foreground!");
-        }else {
-            AppLoggerHelper.debug(TAG, "App's service is NOT set as default for payment AND foreground app payments are not allowed  => prompting the user to set either option");
-
-            final AlertDialog.Builder builder = new AlertDialog.Builder(CardListActivity.this);
-            builder.setTitle("Allow app to use NFC");
-            builder.setMessage("The app is not set as default payment app AND payments with foreground apps are not allowed.\nPlease enable either of the options so you could use it for payments.");
-            builder.setPositiveButton("Let's do it!", new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(final DialogInterface dialogInterface, final int identifier) {
-                    final Intent activate = new Intent();
-                    activate.setAction(Settings.ACTION_NFC_PAYMENT_SETTINGS);
-                    startActivity(activate);
-                }
-            });
-            builder.setNegativeButton("No", null);
-            builder.create().show();
-        }
-    }
-
-    private void requestNotificationPermissionIfNeeded() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) { // Android 13+
-            if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-                // Permission not granted, request it
-                requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS}, REQUEST_CODE_POST_NOTIFICATIONS);
-            } else {
-                AppLoggerHelper.info(TAG, "POST_NOTIFICATIONS permission already granted");
-            }
-        } else {
-            AppLoggerHelper.info(TAG, "No runtime permission needed for notifications on Android < 13");
-        }
-    }
-
-    // Handle the permission request result
-    @Override
-    public void onRequestPermissionsResult(final int requestCode,
-                                           @NonNull final String[] permissions,
-                                           @NonNull final int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == REQUEST_CODE_POST_NOTIFICATIONS) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                AppLoggerHelper.info(TAG, "Permission granted - you can now show notifications");
-            } else {
-                AppLoggerHelper.info(TAG, "Permission denied - notify user or disable notifications feature");
-            }
-        }
-    }
-
-    //endregion
 
 }
